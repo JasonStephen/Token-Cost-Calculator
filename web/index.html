@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Token Cost Calc</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <header class="masthead">
+      <div class="title-wrap"><h1 data-i18n="app.title">Token Cost Calc</h1><p class="subtitle" data-i18n="app.subtitle">把 Token 账算得明明白白。</p><i class="scribble"></i></div>
+      <div class="top-actions">
+        <label class="currency-control"><span data-i18n="header.currency">显示币种</span> <select id="currency"><option value="USD">USD $</option><option value="CNY">CNY &yen;</option></select></label>
+        <label class="currency-control"><span data-i18n="header.language">语言</span> <select id="language"><option value="zh-CN" data-i18n="language.zhCN">简体中文</option><option value="zh-TW" data-i18n="language.zhTW">繁體中文</option><option value="en" data-i18n="language.en">English</option></select></label>
+        <button class="icon-btn" id="reset" data-i18n-title="header.reset" title="重置为默认值">↻</button>
+      </div>
+    </header>
+
+    <section class="section collapsible-section">
+      <div class="section-heading"><h2><span data-i18n="section.structure.title">① 结构反推</span> <span data-i18n="section.structure.subtitle">先填你已有的三项 Token</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="structureUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
+      <div class="method-grid">
+        <article class="panel method-card">
+          <h3 data-i18n="structure.knownDistribution">已知 Token 分布</h3>
+          <div class="fields">
+            <div class="field"><label id="cacheLabel" for="cache">缓存命中（M Token）</label><div class="unit-input"><input id="cache" type="number" min="0" step="0.1"><span id="cacheUnit">M</span></div></div>
+            <div class="field"><label id="inputLabel" for="input">输入（缓外，M Token）</label><div class="unit-input"><input id="input" type="number" min="0" step="0.1"><span id="inputUnit">M</span></div></div>
+            <div class="field"><label id="outputLabel" for="output">输出（M Token）</label><div class="unit-input"><input id="output" type="number" min="0" step="0.1"><span id="outputUnit">M</span></div></div>
+          </div>
+          <div class="result-strip">
+            <div class="metric"><div class="label" data-i18n="structure.inputOutputWithCache">输入 : 输出（含缓存）</div><strong id="ratioOut">--</strong></div>
+            <div class="metric"><div class="label" data-i18n="field.cacheHitRate">缓存命中率</div><strong id="hitOut">--</strong></div>
+          </div>
+          <p class="formula" data-i18n="structure.formula">输入 = 缓存命中 + 缓外输入；命中率 = 缓存命中 / 输入。</p>
+        </article>
+        <article class="panel method-card">
+          <h3 data-i18n="structure.knownUsage">已知使用特征</h3>
+          <div class="fields two">
+            <div class="field"><label for="knownRatio" data-i18n="field.inputOutput">输入 : 输出</label><div class="unit-input"><input id="knownRatio" type="number" min="0" step="0.1"><span>: 1</span></div></div>
+            <div class="field"><label for="knownHit" data-i18n="field.cacheHitRate">缓存命中率</label><div class="unit-input"><input id="knownHit" type="number" min="0" max="100" step="0.1"><span>%</span></div></div>
+          </div>
+          <div class="result-strip">
+            <div class="metric"><div class="label" data-i18n="structure.inputShare">输入占全部 Token</div><strong id="inputShare">--</strong></div>
+            <div class="metric"><div class="label" data-i18n="structure.outputShare">输出占全部 Token</div><strong id="outputShare">--</strong></div>
+          </div>
+          <p class="formula" data-i18n="structure.usageFormula">输入与输出比、缓存命中率可分别设置；此处用于查看已有使用特征。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section collapsible-section">
+      <div class="section-heading"><h2><span data-i18n="section.comparison.title">② 横向对比</span> <span data-i18n="section.comparison.subtitle">每个模型可独立设置单价、倍率和美元兑人民币汇率</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="comparisonUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="comparisonModelFilter"></div><button class="add-btn" id="addModel" data-i18n="action.addModel">＋ 添加模型</button><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
+      <div class="panel scenario-config" id="comparisonConfig"></div>
+      <div class="comparison-scroll"><div class="comparison" id="comparison"></div></div>
+      <p class="hint" data-i18n="comparison.hint">勾选共享后，该字段将应用到所有模型；取消勾选后可为每个模型单独设置。实际费用已乘开支倍率，并同时显示美元与人民币。</p>
+    </section>
+
+    <section class="section scenario collapsible-section">
+      <div class="section-heading"><h2><span data-i18n="section.tokenCost.title">③ Token 转价格</span> <span data-i18n="section.tokenCost.subtitle">按总 Token 估算不同模型的实际开支</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="tokenUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="tokenModelFilter"></div><button class="add-btn" id="addTokenRow" data-i18n="action.addItem">＋ 添加条目</button><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
+      <div class="panel scenario-config" id="tokenConfig"></div>
+      <div class="panel scenario-panel"><div class="scenario-scroll"><div class="scenario-table" id="tokenRows"></div></div></div>
+      <p class="hint" data-i18n="scenario.hint">勾选共享后，该字段将应用到所有条目；取消勾选后可为每一条单独设置。</p>
+    </section>
+
+    <section class="section scenario collapsible-section">
+      <div class="section-heading"><h2><span data-i18n="section.budget.title">④ 价格转 Token</span> <span data-i18n="section.budget.subtitle">按预算估算可使用的总 Token</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="budgetUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="budgetModelFilter"></div><button class="add-btn" id="addBudgetRow" data-i18n="action.addItem">＋ 添加条目</button><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
+      <div class="panel scenario-config" id="budgetConfig"></div>
+      <div class="panel scenario-panel"><div class="scenario-scroll"><div class="scenario-table" id="budgetRows"></div></div></div>
+      <p class="hint" data-i18n="scenario.hint">勾选共享后，该字段将应用到所有条目；取消勾选后可为每一条单独设置。</p>
+    </section>
+    <p class="legend" data-i18n="footer.note">注：缓存命中视为输入的一部分。模型价格、汇率和开支倍率均由你控制；计算结果仅包含模型 Token 费用，不含工具调用、税费及其他服务费用。</p>
+    <p class="foot" data-i18n="footer.storage">本地计算器 / 状态保存在 token-cost-calc.json</p>
+  </main>
+  <dialog class="confirm-dialog" id="modelDeleteDialog" aria-labelledby="modelDeleteTitle">
+    <form method="dialog">
+      <h3 id="modelDeleteTitle" data-i18n="dialog.deleteModelTitle">删除模型？</h3>
+      <p><span data-i18n="dialog.deleteModelPrefix">将删除</span> <strong id="modelDeleteName"></strong> <span data-i18n="dialog.deleteModelSuffix">及其在各板块中的模型选择。</span></p>
+      <div class="confirm-dialog-actions"><button class="text-btn" value="cancel" data-i18n="action.cancel">取消</button><button class="danger-btn" id="confirmModelDelete" type="button" data-i18n="action.deleteModel">删除模型</button></div>
+    </form>
+  </dialog>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

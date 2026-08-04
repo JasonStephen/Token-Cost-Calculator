@@ -1,0 +1,58 @@
+{
+  "stateVersion": 9,
+  "currency": "CNY",
+  "language": "zh-CN",
+  "structureUnit": "M",
+  "comparisonUnit": "M",
+  "tokenUnit": "M",
+  "budgetUnit": "M",
+  "comparisonSelectedModelIds": ["sol", "terra", "luna"],
+  "comparisonMultiplier": 0.04,
+  "comparisonFxRate": 7.2,
+  "cache": 6,
+  "input": 14,
+  "output": 5,
+  "knownRatio": 4,
+  "knownHit": 30,
+  "multiplier": 0.04,
+  "comparisonConfig": {
+    "ratio": 4,
+    "hit": 30,
+    "total": 100,
+    "shared": {"ratio": true, "hit": true, "total": true}
+  },
+  "tokenConfig": {
+    "ratio": 300,
+    "hit": 90,
+    "total": 100,
+    "multiplier": 0.04,
+    "fxRate": 7.2,
+    "shared": {"ratio": true, "hit": true, "total": true, "multiplier": true, "fxRate": true}
+  },
+  "budgetConfig": {
+    "ratio": 300,
+    "hit": 90,
+    "budget": 100,
+    "multiplier": 0.04,
+    "fxRate": 7.2,
+    "shared": {"ratio": true, "hit": true, "budget": true, "multiplier": true, "fxRate": true}
+  },
+  "tokenRows": [{"ratio": 300, "hit": 90, "total": 100, "multiplier": 0.04, "fxRate": 7.2}],
+  "budgetRows": [{"ratio": 300, "hit": 90, "budget": 100, "multiplier": 0.04, "fxRate": 7.2}],
+  "tokenSelectedModelIds": ["sol", "terra", "luna"],
+  "budgetSelectedModelIds": ["sol", "terra", "luna"],
+  "models": [
+    {
+      "id": "sol", "name": "GPT-5.6 Sol", "cache": 0.5, "input": 5, "output": 30,
+      "multiplier": 0.04, "fxRate": 7.2, "comparisonRatio": 4, "comparisonHit": 30, "comparisonTotal": 100
+    },
+    {
+      "id": "terra", "name": "GPT-5.6 Terra", "cache": 0.2, "input": 2, "output": 12,
+      "multiplier": 0.04, "fxRate": 7.2, "comparisonRatio": 4, "comparisonHit": 30, "comparisonTotal": 100
+    },
+    {
+      "id": "luna", "name": "GPT-5.6 Luna", "cache": 0.02, "input": 0.2, "output": 1.2,
+      "multiplier": 0.04, "fxRate": 7.2, "comparisonRatio": 4, "comparisonHit": 30, "comparisonTotal": 100
+    }
+  ]
+}
