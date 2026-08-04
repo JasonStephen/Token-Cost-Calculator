@@ -2,6 +2,23 @@
     const t = (key, values) => window.i18n.t(key, values);
     const PRESET_ORDER = ['GPT-5.6 Sol', 'GPT-5.6 Terra', 'GPT-5.6 Luna'];
     const $ = id => document.getElementById(id);
+    const HELP_POINT_KEYS = ['point1', 'point2', 'point3'];
+
+    function openHelpDialog(section) {
+      $('helpDialogTitle').textContent = t('help.' + section + '.title');
+      const intro = t('help.' + section + '.intro');
+      $('helpDialogIntro').textContent = intro;
+      $('helpDialogIntro').hidden = !intro;
+      $('helpDialogPoints').innerHTML = HELP_POINT_KEYS
+        .map(key => t('help.' + section + '.' + key))
+        .filter(Boolean)
+        .map(point => '<li>' + point + '</li>')
+        .join('');
+      const note = t('help.' + section + '.note');
+      $('helpDialogNote').textContent = note;
+      $('helpDialogNote').hidden = !note;
+      $('helpDialog').showModal();
+    }
     const num = value => Math.max(0, Number(value) || 0);
     const valueOr = (value, fallback) => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : fallback;
     const percent = value => Math.min(100, Math.max(0, num(value)));
@@ -442,6 +459,13 @@
       }
     };
     $('modelDeleteDialog').addEventListener('close', () => { pendingModelId = null; });
+    $('closeHelpDialog').onclick = () => $('helpDialog').close();
+    $('helpDialog').addEventListener('click', event => {
+      if (event.target === event.currentTarget) event.currentTarget.close();
+    });
+    document.querySelectorAll('[data-help-section]').forEach(button => {
+      button.addEventListener('click', () => openHelpDialog(button.dataset.helpSection));
+    });
     $('structureUnit').onchange=e=>{state.structureUnit=e.target.value; renderStructureUnit(); update();};
     $('comparisonUnit').onchange = event => {
       state.comparisonUnit = event.target.value;

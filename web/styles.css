@@ -124,6 +124,18 @@
     .confirm-dialog p { margin:0; color:var(--muted); font-size:13px; line-height:1.55; }
     .confirm-dialog-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:19px; }
     .danger-btn { border:2px solid var(--line); background:var(--pink); box-shadow:3px 3px 0 var(--ink); border-radius:3px; padding:7px 10px; font-weight:800; }
+    .help-btn { width:18px; height:18px; margin-left:5px; padding:0; border:1.5px solid var(--line); border-radius:50%; background:var(--white); color:var(--ink); font-size:12px; font-weight:900; line-height:1; vertical-align:2px; }
+    .help-btn:hover, .help-btn:focus-visible { background:var(--yellow); outline:none; box-shadow:2px 2px 0 var(--ink); }
+    .help-dialog { width:min(520px, calc(100vw - 32px)); padding:0; border:2px solid var(--line); background:var(--white); box-shadow:6px 6px 0 var(--ink); }
+    .help-dialog::backdrop { background:rgba(17,17,17,.36); }
+    .help-dialog-content { padding:20px; }
+    .help-dialog-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+    .help-dialog h3 { margin:0; font-size:18px; }
+    .help-close { flex:0 0 auto; width:31px; height:31px; font-size:19px; }
+    .help-dialog p { margin:14px 0 0; color:var(--muted); font-size:13px; line-height:1.6; }
+    .help-dialog ul { margin:13px 0 0; padding-left:21px; }
+    .help-dialog li { margin:7px 0; font-size:13px; line-height:1.5; }
+    .help-dialog-note { padding:10px 12px; border-left:3px solid var(--yellow); background:var(--paper); }
     @media (max-width: 1060px) { .app{padding:22px} .method-grid{grid-template-columns:1fr} .scenario-config{grid-template-columns:repeat(2, minmax(160px, 1fr))} }
     .collapsible-section.collapsed > :not(.section-heading) { display:none; }
     .section-toggle { width:31px; height:31px; font-size:16px; }

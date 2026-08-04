@@ -18,7 +18,7 @@
     </header>
 
     <section class="section collapsible-section">
-      <div class="section-heading"><h2><span data-i18n="section.structure.title">① 结构反推</span> <span data-i18n="section.structure.subtitle">先填你已有的三项 Token</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="structureUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
+      <div class="section-heading"><h2><span data-i18n="section.structure.title">① 结构反推</span> <button class="help-btn" type="button" data-help-section="structure" data-i18n-title="help.structure.summary" data-i18n-aria-label="help.open" title="用于根据已知 Token 分布或使用特征，反推输入、输出与缓存占比。" aria-label="查看帮助">?</button> <span data-i18n="section.structure.subtitle">先填你已有的三项 Token</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="structureUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
       <div class="method-grid">
         <article class="panel method-card">
           <h3 data-i18n="structure.knownDistribution">已知 Token 分布</h3>
@@ -49,21 +49,21 @@
     </section>
 
     <section class="section collapsible-section">
-      <div class="section-heading"><h2><span data-i18n="section.comparison.title">② 横向对比</span> <span data-i18n="section.comparison.subtitle">每个模型可独立设置单价、倍率和美元兑人民币汇率</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="comparisonUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="comparisonModelFilter"></div><button class="add-btn" id="addModel" data-i18n="action.addModel">＋ 添加模型</button><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
+      <div class="section-heading"><h2><span data-i18n="section.comparison.title">② 横向对比</span> <button class="help-btn" type="button" data-help-section="comparison" data-i18n-title="help.comparison.summary" data-i18n-aria-label="help.open" title="用于在相同 Token 口径下比较不同模型的费用。" aria-label="查看帮助">?</button> <span data-i18n="section.comparison.subtitle">每个模型可独立设置单价、倍率和美元兑人民币汇率</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="comparisonUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="comparisonModelFilter"></div><button class="add-btn" id="addModel" data-i18n="action.addModel">＋ 添加模型</button><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
       <div class="panel scenario-config" id="comparisonConfig"></div>
       <div class="comparison-scroll"><div class="comparison" id="comparison"></div></div>
       <p class="hint" data-i18n="comparison.hint">勾选共享后，该字段将应用到所有模型；取消勾选后可为每个模型单独设置。实际费用已乘开支倍率，并同时显示美元与人民币。</p>
     </section>
 
     <section class="section scenario collapsible-section">
-      <div class="section-heading"><h2><span data-i18n="section.tokenCost.title">③ Token 转价格</span> <span data-i18n="section.tokenCost.subtitle">按总 Token 估算不同模型的实际开支</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="tokenUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="tokenModelFilter"></div><button class="add-btn" id="addTokenRow" data-i18n="action.addItem">＋ 添加条目</button><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
+      <div class="section-heading"><h2><span data-i18n="section.tokenCost.title">③ Token 转价格</span> <button class="help-btn" type="button" data-help-section="tokenCost" data-i18n-title="help.tokenCost.summary" data-i18n-aria-label="help.open" title="用于按总 Token 估算不同模型的实际开支。" aria-label="查看帮助">?</button> <span data-i18n="section.tokenCost.subtitle">按总 Token 估算不同模型的实际开支</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="tokenUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="tokenModelFilter"></div><button class="add-btn" id="addTokenRow" data-i18n="action.addItem">＋ 添加条目</button><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
       <div class="panel scenario-config" id="tokenConfig"></div>
       <div class="panel scenario-panel"><div class="scenario-scroll"><div class="scenario-table" id="tokenRows"></div></div></div>
       <p class="hint" data-i18n="scenario.hint">勾选共享后，该字段将应用到所有条目；取消勾选后可为每一条单独设置。</p>
     </section>
 
     <section class="section scenario collapsible-section">
-      <div class="section-heading"><h2><span data-i18n="section.budget.title">④ 价格转 Token</span> <span data-i18n="section.budget.subtitle">按预算估算可使用的总 Token</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="budgetUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="budgetModelFilter"></div><button class="add-btn" id="addBudgetRow" data-i18n="action.addItem">＋ 添加条目</button><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
+      <div class="section-heading"><h2><span data-i18n="section.budget.title">④ 价格转 Token</span> <button class="help-btn" type="button" data-help-section="budget" data-i18n-title="help.budget.summary" data-i18n-aria-label="help.open" title="用于按预算估算不同模型可使用的总 Token。" aria-label="查看帮助">?</button> <span data-i18n="section.budget.subtitle">按预算估算可使用的总 Token</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="budgetUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="budgetModelFilter"></div><button class="add-btn" id="addBudgetRow" data-i18n="action.addItem">＋ 添加条目</button><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
       <div class="panel scenario-config" id="budgetConfig"></div>
       <div class="panel scenario-panel"><div class="scenario-scroll"><div class="scenario-table" id="budgetRows"></div></div></div>
       <p class="hint" data-i18n="scenario.hint">勾选共享后，该字段将应用到所有条目；取消勾选后可为每一条单独设置。</p>
@@ -78,6 +78,18 @@
       <div class="confirm-dialog-actions"><button class="text-btn" value="cancel" data-i18n="action.cancel">取消</button><button class="danger-btn" id="confirmModelDelete" type="button" data-i18n="action.deleteModel">删除模型</button></div>
     </form>
   </dialog>
+  <dialog id="helpDialog" class="help-dialog" aria-labelledby="helpDialogTitle">
+    <div class="help-dialog-content">
+      <div class="help-dialog-heading"><h3 id="helpDialogTitle"></h3><button class="icon-btn help-close" id="closeHelpDialog" type="button" data-i18n-title="help.close" data-i18n-aria-label="help.close" title="关闭帮助" aria-label="关闭帮助">×</button></div>
+      <p id="helpDialogIntro"></p>
+      <ul id="helpDialogPoints"></ul>
+      <p class="help-dialog-note" id="helpDialogNote"></p>
+    </div>
+  </dialog>
+
+  <script src="locales/zh-CN.js"></script>
+  <script src="locales/zh-TW.js"></script>
+  <script src="locales/en.js"></script>
   <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
