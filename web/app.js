@@ -77,7 +77,7 @@
       const sidebar = document.querySelector('.sidebar');
       const nav = sidebar && sidebar.querySelector('.sidebar-nav');
       if (!sidebar || !nav) return;
-      let toggle = sidebar.querySelector('#sidebarToggle');
+      let toggle = document.querySelector('#sidebarToggle');
       if (!toggle) {
         toggle = document.createElement('button');
         toggle.id = 'sidebarToggle';
@@ -100,10 +100,6 @@
       const settings = $('openSettings');
       if (settings && !settings.dataset.viewTarget) {
         settings.dataset.viewTarget = 'settings';
-        settings.classList.remove('sidebar-settings');
-        settings.classList.add('sidebar-nav-item');
-        nav.appendChild(settings);
-        sidebar.querySelector('.sidebar-footer')?.remove();
       }
       const details = sidebar.querySelector('.sidebar-state');
       if (details && !details.dataset.sidebarBound) {
@@ -113,7 +109,7 @@
       document.querySelectorAll('[data-sidebar-toggle]').forEach(button => {
         if (button.dataset.sidebarBound) return;
         button.dataset.sidebarBound = 'true';
-        if (button.tagName.toLowerCase() !== 'summary') button.addEventListener('click', () => applySidebarCollapsed(!sidebar.classList.contains('is-collapsed')));
+        button.addEventListener('click', () => applySidebarCollapsed(!sidebar.classList.contains('is-collapsed')));
       });
       $('sidebarBackdrop')?.addEventListener('click', () => applySidebarCollapsed(true));
     }
@@ -387,8 +383,6 @@
       const sidebar = document.querySelector('.sidebar');
       const shell = document.querySelector('.app-shell');
       const value = Boolean(collapsed);
-      const details = sidebar?.querySelector('.sidebar-state');
-      if (details && details.open !== !value) details.open = !value;
       sidebar?.classList.toggle('is-collapsed', value);
       shell?.classList.toggle('sidebar-collapsed', value);
       document.body.classList.toggle('sidebar-overlay-open', !value);
@@ -1233,7 +1227,48 @@
     });
     $('addTokenRow').onclick=()=>{state.tokenRows.push(newRow('tokenRows', state.tokenConfig)); renderTokenRows(); save();};
     $('addBudgetRow').onclick=()=>{state.budgetRows.push(newRow('budgetRows', state.budgetConfig)); renderBudgetRows(); save();};
-    $('reset').onclick=async()=>{if(confirm(t('confirm.reset'))) { const api = window.pywebview && window.pywebview.api; if (!api || await api.reset_state()) { localStorage.removeItem('token-cost-calc'); location.reload(); } }};
+    const resetConfirmDialog = $('resetConfirmDialog');
+    const resetTextDialog = $('resetTextDialog');
+    const resetConfirmInput = $('resetConfirmInput');
+    const resetExecuteButton = $('resetConfirmExecute');
+    const resetDialogError = $('resetDialogError');
+    $('reset').onclick = () => {
+      resetConfirmDialog?.showModal();
+    };
+    $('resetConfirmProceed')?.addEventListener('click', () => {
+      resetConfirmDialog?.close();
+      resetConfirmInput.value = '';
+      resetExecuteButton.disabled = true;
+      if (resetDialogError) resetDialogError.hidden = true;
+      resetTextDialog?.showModal();
+      window.setTimeout(() => resetConfirmInput?.focus(), 0);
+    });
+    resetConfirmInput?.addEventListener('input', () => {
+      const valid = resetConfirmInput.value === 'RESET';
+      resetExecuteButton.disabled = !valid;
+      if (resetDialogError) resetDialogError.hidden = true;
+    });
+    resetExecuteButton?.addEventListener('click', async () => {
+      if (resetConfirmInput.value !== 'RESET') return;
+      resetExecuteButton.disabled = true;
+      const api = window.pywebview && window.pywebview.api;
+      try {
+        if (!api || await api.reset_state()) {
+          localStorage.removeItem('token-cost-calc');
+          resetTextDialog?.close();
+          location.reload();
+          return;
+        }
+        throw new Error('reset_state returned false');
+      } catch (error) {
+        console.error('Failed to reset application.', error);
+        resetExecuteButton.disabled = false;
+        if (resetDialogError) {
+          resetDialogError.textContent = t('resetDialog.failed');
+          resetDialogError.hidden = false;
+        }
+      }
+    });
     document.querySelectorAll('[data-view-target]').forEach(button => {
       button.addEventListener('click', () => {
         setActiveView(button.dataset.viewTarget);

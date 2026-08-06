@@ -81,7 +81,11 @@ class PricingCatalogTests(unittest.TestCase):
         self.assertIn("--accent-ink", css_source)
         self.assertIn("--result-ink", css_source)
         self.assertIn(":root[data-theme=\"dark\"] .about-brand-logo", css_source)
-        self.assertIn('.section-heading h2 span:first-child { font-size:16px;', css_source)
+        self.assertIn('.section-heading h2 span:first-child { margin-left:0; font-size:22px;', css_source)
+        self.assertNotIn('① Usage breakdown', html_source)
+        self.assertNotIn('② Model comparison', html_source)
+        self.assertNotIn('③ Tokens to cost', html_source)
+        self.assertNotIn('④ Budget to tokens', html_source)
         self.assertIn('.section-heading h2 span:last-child { font-size:14px;', css_source)
         self.assertIn('.home-view-card > span:last-child { color:var(--accent-ink); font-size:13px;', css_source)
         self.assertIn('.hint { margin:5px 0 0; font-size:13px;', css_source)
@@ -98,7 +102,8 @@ class PricingCatalogTests(unittest.TestCase):
         self.assertIn('id="sidebarBackdrop"', html_source)
         self.assertNotIn('class="sidebar-toggle-label"', html_source)
         self.assertIn('.sidebar-backdrop', css_source)
-        self.assertIn('transform:translateX(calc(-100% + 58px))', css_source)
+        self.assertIn('transform:translateX(-100%)', css_source)
+        self.assertIn('id="sidebarToggle"', html_source)
 
     def test_batch_launcher_keeps_devtools_manual(self):
         root = Path(__file__).resolve().parents[1]

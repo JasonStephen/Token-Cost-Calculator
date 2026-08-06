@@ -9,9 +9,6 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="Main navigation" data-i18n-aria-label="sidebar.navigation">
-      <button class="sidebar-toggle" id="sidebarToggle" data-sidebar-toggle="true" type="button" aria-expanded="true" aria-label="Toggle sidebar" data-i18n-aria-label="sidebar.toggle" data-i18n-title="sidebar.toggle" title="Toggle sidebar">
-          <span class="sidebar-toggle-icon" aria-hidden="true">☰</span>
-      </button>
         <div class="sidebar-body">
           <div class="sidebar-brand">
             <h1 data-i18n="app.title">Token Cost Calc</h1>
@@ -35,6 +32,9 @@
           </div>
         </div>
     </aside>
+    <button class="sidebar-toggle" id="sidebarToggle" data-sidebar-toggle="true" type="button" aria-expanded="true" aria-label="Toggle sidebar" data-i18n-aria-label="sidebar.toggle" data-i18n-title="sidebar.toggle" title="Toggle sidebar">
+      <span class="sidebar-toggle-icon" aria-hidden="true">☰</span>
+    </button>
     <button class="sidebar-backdrop" id="sidebarBackdrop" type="button" aria-label="Close navigation" data-i18n-aria-label="sidebar.toggle"></button>
 
     <div class="workspace">
@@ -54,7 +54,7 @@
         </section>
 
         <section class="section" data-view-section="structure" hidden>
-          <div class="section-heading"><h2><span data-i18n="section.structure.title">① Usage breakdown</span> <button class="help-btn" type="button" data-help-section="structure" data-i18n-title="help.structure.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button> <span data-i18n="section.structure.subtitle">Start with three known token values</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="structureUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label></div></div>
+          <div class="section-heading"><h2><span data-i18n="section.structure.title">Usage breakdown</span> <button class="help-btn" type="button" data-help-section="structure" data-i18n-title="help.structure.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button> <span data-i18n="section.structure.subtitle">Start with three known token values</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="structureUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label></div></div>
           <div class="method-grid">
             <article class="panel method-card">
               <h3 data-i18n="structure.knownDistribution">Known token distribution</h3>
@@ -76,20 +76,20 @@
         </section>
 
         <section class="section" data-view-section="comparison" hidden>
-          <div class="section-heading"><h2><span data-i18n="section.comparison.title">② Model comparison</span> <button class="help-btn" type="button" data-help-section="comparison" data-i18n-title="help.comparison.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button> <span data-i18n="section.comparison.subtitle">Compare model costs side by side</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="comparisonUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="comparisonModelFilter"></div><button class="add-btn" id="addModel" type="button" data-i18n="action.addModel">+ Add model</button></div></div>
+          <div class="section-heading"><h2><span data-i18n="section.comparison.title">Model comparison</span> <button class="help-btn" type="button" data-help-section="comparison" data-i18n-title="help.comparison.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button> <span data-i18n="section.comparison.subtitle">Compare model costs side by side</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="comparisonUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="comparisonModelFilter"></div><button class="add-btn" id="addModel" type="button" data-i18n="action.addModel">+ Add model</button></div></div>
           <div class="panel scenario-config" id="comparisonConfig"></div>
           <div class="comparison-scroll"><div class="comparison" id="comparison"></div></div>
           <p class="hint" data-i18n="comparison.hint">Shared fields apply to all models. Actual cost includes the spending multiplier.</p>
         </section>
 
         <section class="section scenario" data-view-section="tokenCost" hidden>
-          <div class="section-heading"><h2><span data-i18n="section.tokenCost.title">③ Tokens to cost</span> <button class="help-btn" type="button" data-help-section="tokenCost" data-i18n-title="help.tokenCost.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button> <span data-i18n="section.tokenCost.subtitle">Estimate actual spend from tokens</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="tokenUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="tokenModelFilter"></div><button class="add-btn" id="addTokenRow" type="button" data-i18n="action.addItem">+ Add item</button></div></div>
+          <div class="section-heading"><h2><span data-i18n="section.tokenCost.title">Tokens to cost</span> <button class="help-btn" type="button" data-help-section="tokenCost" data-i18n-title="help.tokenCost.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button> <span data-i18n="section.tokenCost.subtitle">Estimate actual spend from tokens</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="tokenUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="tokenModelFilter"></div><button class="add-btn" id="addTokenRow" type="button" data-i18n="action.addItem">+ Add item</button></div></div>
           <div class="panel scenario-config" id="tokenConfig"></div><div class="panel scenario-panel"><div class="scenario-scroll"><div class="scenario-table" id="tokenRows"></div></div></div>
           <p class="hint" data-i18n="scenario.hint">Shared fields apply to all rows. Clear the checkbox to customize a row.</p>
         </section>
 
         <section class="section scenario" data-view-section="budget" hidden>
-          <div class="section-heading"><h2><span data-i18n="section.budget.title">④ Budget to tokens</span> <button class="help-btn" type="button" data-help-section="budget" data-i18n-title="help.budget.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button> <span data-i18n="section.budget.subtitle">Estimate tokens available from a budget</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="budgetUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="budgetModelFilter"></div><button class="add-btn" id="addBudgetRow" type="button" data-i18n="action.addItem">+ Add item</button></div></div>
+          <div class="section-heading"><h2><span data-i18n="section.budget.title">Budget to tokens</span> <button class="help-btn" type="button" data-help-section="budget" data-i18n-title="help.budget.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button> <span data-i18n="section.budget.subtitle">Estimate tokens available from a budget</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="budgetUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="budgetModelFilter"></div><button class="add-btn" id="addBudgetRow" type="button" data-i18n="action.addItem">+ Add item</button></div></div>
           <div class="panel scenario-config" id="budgetConfig"></div><div class="panel scenario-panel"><div class="scenario-scroll"><div class="scenario-table" id="budgetRows"></div></div></div>
           <p class="hint" data-i18n="scenario.hint">Shared fields apply to all rows. Clear the checkbox to customize a row.</p>
         </section>
@@ -157,6 +157,8 @@
   </div>
 
   <dialog class="confirm-dialog" id="modelDeleteDialog" aria-labelledby="modelDeleteTitle"><form method="dialog"><h3 id="modelDeleteTitle" data-i18n="dialog.deleteModelTitle">Delete model?</h3><p><span data-i18n="dialog.deleteModelPrefix">Delete</span> <strong id="modelDeleteName"></strong> <span data-i18n="dialog.deleteModelSuffix">and its selections.</span></p><div class="confirm-dialog-actions"><button class="text-btn" value="cancel" data-i18n="action.cancel">Cancel</button><button class="danger-btn" id="confirmModelDelete" type="button" data-i18n="action.deleteModel">Delete model</button></div></form></dialog>
+  <dialog class="confirm-dialog" id="resetConfirmDialog" aria-labelledby="resetConfirmTitle"><form method="dialog"><h3 id="resetConfirmTitle" data-i18n="resetDialog.title">Reset application?</h3><p data-i18n="resetDialog.description">This removes locally saved preferences, models, and custom prices.</p><div class="confirm-dialog-actions"><button class="text-btn" value="cancel" data-i18n="action.cancel">Cancel</button><button class="danger-btn" id="resetConfirmProceed" type="button" data-i18n="resetDialog.continue">Continue</button></div></form></dialog>
+  <dialog class="confirm-dialog" id="resetTextDialog" aria-labelledby="resetTextTitle"><form method="dialog"><h3 id="resetTextTitle" data-i18n="resetDialog.confirmTitle">Confirm reset</h3><p><span data-i18n="resetDialog.confirmDescription">Enter</span> <strong>RESET</strong> <span data-i18n="resetDialog.confirmSuffix">to restore the application defaults.</span></p><label class="reset-confirm-input"><span class="visually-hidden" data-i18n="resetDialog.inputLabel">Confirmation text</span><input id="resetConfirmInput" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="resetDialog.inputPlaceholder" placeholder="Type RESET"></label><p class="reset-dialog-error" id="resetDialogError" role="alert" hidden></p><div class="confirm-dialog-actions"><button class="text-btn" value="cancel" data-i18n="action.cancel">Cancel</button><button class="danger-btn" id="resetConfirmExecute" type="button" disabled data-i18n="resetDialog.execute">Reset application</button></div></form></dialog>
   <dialog class="model-config-dialog" id="modelConfigDialog" aria-labelledby="modelConfigTitle">
     <form method="dialog" class="model-config-form">
       <div class="help-dialog-heading"><h3 id="modelConfigTitle" data-i18n="model.customPricing.title">Custom price and configuration</h3><button class="icon-btn" id="closeModelConfig" type="button" data-i18n-title="action.cancel" data-i18n-aria-label="action.cancel" aria-label="Cancel">×</button></div>
