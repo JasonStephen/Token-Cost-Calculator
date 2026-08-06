@@ -379,8 +379,9 @@
     .settings-subnav-item.is-active { border-left-color:var(--line); background:var(--yellow); color:var(--ink); }
     .settings-subnav-item span:first-child, .settings-back-item span:first-child { width:22px; flex:0 0 22px; font-family:Arial,sans-serif; font-size:12px; text-align:center; }
     .settings-back-item { margin-bottom:10px; border-bottom:2px dashed var(--soft-line); color:var(--ink); }
-    .settings-back-button { display:inline-flex; align-items:center; gap:8px; margin:0 0 17px; padding:5px 8px 5px 0; border:0; background:transparent; color:var(--muted); font-size:12px; font-weight:800; }
-    .settings-back-button:hover, .settings-back-button:focus-visible { color:var(--ink); outline:2px solid var(--line); outline-offset:3px; background:var(--white); }
+    .settings-back-button { justify-self:start; width:max-content; max-width:100%; display:inline-flex; align-items:center; gap:8px; margin:0 0 17px; padding:5px 8px 5px 0; border:0; background:transparent; color:var(--muted); font-size:12px; font-weight:800; }
+    .settings-back-button:hover { color:var(--ink); background:transparent; }
+    .settings-back-button:focus-visible { color:var(--ink); outline:0; box-shadow:0 2px 0 var(--ink); }
     .settings-back-button span:first-child { font-family:Arial,sans-serif; font-size:16px; }
     .settings-content { min-width:0; }
     .settings-content > [data-settings-section] { display:none; }
