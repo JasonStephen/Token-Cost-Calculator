@@ -153,6 +153,7 @@
     .section-actions { display:flex; align-items:center; gap:10px; }
     .catalog-toolbar { display:flex; align-items:center; gap:12px; margin:0 0 12px; }
     .pricing-status { min-height:18px; color:var(--muted); font-size:11px; font-weight:700; }
+    .pricing-status:empty { display:none; }
     .pricing-status.success { color:#2d6a35; }
     .pricing-status.warning { color:#8a5b00; }
     .pricing-status.error { color:#a83232; }
@@ -456,6 +457,7 @@
     .custom-pricing-filter-option span { min-height:32px; display:grid; place-items:center; padding:4px 5px; border:1.5px solid var(--soft-line); background:var(--panel-bg); font-size:10px; font-weight:800; text-align:center; }
     .custom-pricing-filter-option input:checked + span { border-color:var(--line); background:var(--yellow); box-shadow:2px 2px 0 var(--ink); }
     .settings-filter-sidebar .settings-model-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:auto; padding:14px 0 4px; }
+    .settings-filter-sidebar .settings-model-actions .pricing-status { grid-column:1 / -1; min-width:0; text-align:left; }
     .settings-filter-sidebar .settings-model-actions button { min-width:0; justify-content:center; padding:8px 6px; font-size:11px; }
     .settings-model-main { min-width:0; }
     .settings-mobile-filters { display:none; }

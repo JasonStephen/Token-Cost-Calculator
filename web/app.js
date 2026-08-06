@@ -403,11 +403,18 @@
         if (persist) save();
       }
     }
+    function clearPricingStatus() {
+      const status = $('pricingStatus');
+      if (!status) return;
+      status.className = 'pricing-status';
+      status.textContent = '';
+    }
     function setSettingsSection(section, persist=true) {
       const activeSection = ['general', 'models', 'about', 'reset'].includes(section) ? section : 'general';
       const settingsView = document.querySelector('[data-view-section="settings"]');
       if (!settingsView) return;
       const shell = document.querySelector('.app-shell');
+      if (activeSection !== 'models' || state?.settingsSection !== 'models') clearPricingStatus();
       settingsView.classList.toggle('settings-models-active', activeSection === 'models');
       settingsView.classList.toggle('settings-about-active', activeSection === 'about');
       shell?.classList.toggle('settings-models-active', activeSection === 'models' && state?.activeView === 'settings');
@@ -430,6 +437,7 @@
     }
     function setActiveView(view, persist=true) {
       const activeView = VIEW_IDS.includes(view) ? view : 'home';
+      if (activeView !== 'settings' || state?.activeView !== 'settings') clearPricingStatus();
       document.querySelectorAll('[data-view-section]').forEach(section => {
         const active = section.dataset.viewSection === activeView;
         section.hidden = !active;
@@ -1096,7 +1104,7 @@
       save();
     };
     function mergePricingModels(incoming) {
-      const previous = new Map(state.models.filter(model => model.source === 'litellm').map(model => [String(model.sourceModelId || model.id), model]));
+      const previous = new Map(state.models.filter(model => model.source === 'litellm').map(model => [String(model.sourceModelId || model.id).trim().toLowerCase(), model]));
       const manual = state.models.filter(model => model.source !== 'litellm');
       const manualMatches = new Map();
       manual.forEach(model => [model.id, model.sourceModelId, model.targetId, model.name].filter(Boolean).forEach(value => manualMatches.set(String(value).toLowerCase(), model)));
@@ -1105,7 +1113,7 @@
       const imported = incoming.filter(hasPrice).map((item, index) => {
         const sourceModelId = String(item.sourceModelId || item.id || '');
         const targetId = String(item.targetId || '');
-        const old = previous.get(sourceModelId) || manualMatches.get(sourceModelId.toLowerCase()) || manualMatches.get(targetId.toLowerCase());
+        const old = previous.get(sourceModelId.trim().toLowerCase()) || manualMatches.get(sourceModelId.toLowerCase()) || manualMatches.get(targetId.toLowerCase());
         if (old && old.source !== 'litellm') { matchedManualIds.add(old.id); used.delete(old.id); }
         const customPricing = Boolean(old && old.customPricing);
         const raw = {...item, id:old?.id || item.id || ('catalog-' + sourceModelId), name:String(item.name || sourceModelId || t('model.new')), source:'litellm', sourceModelId,
