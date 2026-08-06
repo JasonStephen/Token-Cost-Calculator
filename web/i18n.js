@@ -30,6 +30,12 @@
     root.querySelectorAll('[data-i18n-aria-label]').forEach(element => {
       element.setAttribute('aria-label', t(element.dataset.i18nAriaLabel));
     });
+    root.querySelectorAll('[data-i18n-alt]').forEach(element => {
+      element.setAttribute('alt', t(element.dataset.i18nAlt));
+    });
+    root.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+      element.setAttribute('placeholder', t(element.dataset.i18nPlaceholder));
+    });
   }
 
   window.i18n = { normalizeLocale, setLocale, t, translateDocument };

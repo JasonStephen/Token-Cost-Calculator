@@ -15,6 +15,9 @@ env/
 token-cost-calc.json
 token-cost-calc.tmp
 
+# Remote pricing cache
+cache/
+
 # Build artifacts
 build/
 dist/

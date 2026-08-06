@@ -1,7 +1,13 @@
 {
-  "stateVersion": 9,
+  "stateVersion": 10,
   "currency": "CNY",
   "language": "zh-CN",
+  "theme": "system",
+  "activeView": "home",
+  "sidebarCollapsed": false,
+  "settingsSection": "general",
+  "showHostedModels": false,
+  "pricingCatalogInitialized": false,
   "structureUnit": "M",
   "comparisonUnit": "M",
   "tokenUnit": "M",
@@ -43,15 +49,15 @@
   "budgetSelectedModelIds": ["sol", "terra", "luna"],
   "models": [
     {
-      "id": "sol", "name": "GPT-5.6 Sol", "cache": 0.5, "input": 5, "output": 30,
+      "id": "sol", "name": "GPT-5.6 Sol", "provider": "OpenAI", "providerId": "openai", "category": "openai", "categoryId": "provider-openai", "source": "bundled", "sourceModelId": "gpt-5.6-sol", "targetId": "sol", "cache": 0.5, "input": 5, "output": 30,
       "multiplier": 0.04, "fxRate": 7.2, "comparisonRatio": 4, "comparisonHit": 30, "comparisonTotal": 100
     },
     {
-      "id": "terra", "name": "GPT-5.6 Terra", "cache": 0.2, "input": 2, "output": 12,
+      "id": "terra", "name": "GPT-5.6 Terra", "provider": "OpenAI", "providerId": "openai", "category": "openai", "categoryId": "provider-openai", "source": "bundled", "sourceModelId": "gpt-5.6-terra", "targetId": "terra", "cache": 0.2, "input": 2, "output": 12,
       "multiplier": 0.04, "fxRate": 7.2, "comparisonRatio": 4, "comparisonHit": 30, "comparisonTotal": 100
     },
     {
-      "id": "luna", "name": "GPT-5.6 Luna", "cache": 0.02, "input": 0.2, "output": 1.2,
+      "id": "luna", "name": "GPT-5.6 Luna", "provider": "OpenAI", "providerId": "openai", "category": "openai", "categoryId": "provider-openai", "source": "bundled", "sourceModelId": "gpt-5.6-luna", "targetId": "luna", "cache": 0.02, "input": 0.2, "output": 1.2,
       "multiplier": 0.04, "fxRate": 7.2, "comparisonRatio": 4, "comparisonHit": 30, "comparisonTotal": 100
     }
   ]

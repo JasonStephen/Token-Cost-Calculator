@@ -14,6 +14,13 @@ if errorlevel 1 (
     )
 )
 
-python app.py
-if errorlevel 1 pause
+for /f "usebackq delims=" %%I in (`python -c "import os, sys; print(os.path.join(os.path.dirname(sys.executable), 'pythonw.exe'))"`) do set "PYTHONW=%%I"
 
+if exist "%PYTHONW%" (
+    start "" "%PYTHONW%" "%~dp0app.py" --devtools
+    exit /b 0
+)
+
+rem Fallback for Python installations without pythonw.exe.
+start "" /b python "%~dp0app.py" --devtools
+exit /b 0

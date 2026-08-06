@@ -7,86 +7,180 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="app">
-    <header class="masthead">
-      <div class="title-wrap"><h1 data-i18n="app.title">Token Cost Calc</h1><p class="subtitle" data-i18n="app.subtitle">把 Token 账算得明明白白。</p><i class="scribble"></i></div>
-      <div class="top-actions">
-        <label class="currency-control"><span data-i18n="header.currency">显示币种</span> <select id="currency"><option value="USD">USD $</option><option value="CNY">CNY &yen;</option></select></label>
-        <label class="currency-control"><span data-i18n="header.language">语言</span> <select id="language"><option value="zh-CN" data-i18n="language.zhCN">简体中文</option><option value="zh-TW" data-i18n="language.zhTW">繁體中文</option><option value="en" data-i18n="language.en">English</option></select></label>
-        <button class="icon-btn" id="reset" data-i18n-title="header.reset" title="重置为默认值">↻</button>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Main navigation" data-i18n-aria-label="sidebar.navigation">
+      <button class="sidebar-toggle" id="sidebarToggle" data-sidebar-toggle="true" type="button" aria-expanded="true" aria-label="Toggle sidebar" data-i18n-aria-label="sidebar.toggle" data-i18n-title="sidebar.toggle" title="Toggle sidebar">
+          <span class="sidebar-toggle-icon" aria-hidden="true">☰</span>
+      </button>
+        <div class="sidebar-body">
+          <div class="sidebar-brand">
+            <h1 data-i18n="app.title">Token Cost Calc</h1>
+            <p class="subtitle" data-i18n="app.subtitle">A clear sketch for token costs.</p>
+          </div>
+          <nav class="sidebar-nav" aria-label="Views" data-i18n-aria-label="sidebar.navigation">
+            <button class="sidebar-nav-item is-active" type="button" data-view-target="home" aria-current="page"><span aria-hidden="true">⌂</span><span data-i18n="sidebar.home">Home</span></button>
+            <button class="sidebar-nav-item" type="button" data-view-target="structure"><span aria-hidden="true">①</span><span data-i18n="sidebar.structure">Usage breakdown</span></button>
+            <button class="sidebar-nav-item" type="button" data-view-target="comparison"><span aria-hidden="true">②</span><span data-i18n="sidebar.comparison">Model comparison</span></button>
+            <button class="sidebar-nav-item" type="button" data-view-target="tokenCost"><span aria-hidden="true">③</span><span data-i18n="sidebar.tokenCost">Tokens to cost</span></button>
+            <button class="sidebar-nav-item" type="button" data-view-target="budget"><span aria-hidden="true">④</span><span data-i18n="sidebar.budget">Budget to tokens</span></button>
+          </nav>
+          <nav class="settings-global-nav" id="settingsSubnav" aria-label="Settings sections" data-i18n-aria-label="settings.sidebar">
+            <button class="settings-subnav-item is-active" type="button" data-settings-target="general" aria-controls="settingsGeneralSection" aria-current="page"><span aria-hidden="true">01</span><span data-i18n="settings.general">General</span></button>
+            <button class="settings-subnav-item" type="button" data-settings-target="models" aria-controls="settingsModelsSection"><span aria-hidden="true">02</span><span data-i18n="settings.models">Model management</span></button>
+            <button class="settings-subnav-item" type="button" data-settings-target="about" aria-controls="settingsAboutSection"><span aria-hidden="true">03</span><span data-i18n="settings.about">About us</span></button>
+            <button class="settings-subnav-item" type="button" data-settings-target="reset" aria-controls="settingsResetSection"><span aria-hidden="true">04</span><span data-i18n="settings.resetTitle">Reset application</span></button>
+          </nav>
+          <div class="sidebar-footer">
+            <button class="sidebar-settings" id="openSettings" type="button" data-view-target="settings"><span class="sidebar-settings-icon" aria-hidden="true">⚙</span><span data-i18n="sidebar.settings">Settings</span></button>
+          </div>
+        </div>
+    </aside>
+    <button class="sidebar-backdrop" id="sidebarBackdrop" type="button" aria-label="Close navigation" data-i18n-aria-label="sidebar.toggle"></button>
+
+    <div class="workspace">
+      <main class="app">
+        <section class="section home-view is-active" data-view-section="home" aria-labelledby="homeTitle">
+          <div class="home-heading">
+            <p class="settings-eyebrow" data-i18n="app.subtitle">Token cost workspace</p>
+            <h2 id="homeTitle" data-i18n="app.title">Token Cost Calc</h2>
+            <p class="home-intro" data-i18n="home.subtitle">Choose a tool to start calculating.</p>
+          </div>
+          <nav class="home-view-grid" aria-label="Calculation tools" data-i18n-aria-label="sidebar.navigation">
+            <button class="home-view-card" type="button" data-view-target="structure"><span class="home-view-number" aria-hidden="true">01</span><strong data-i18n="sidebar.structure">Usage breakdown</strong><span data-i18n="section.structure.subtitle">Start with three known token values</span></button>
+            <button class="home-view-card" type="button" data-view-target="comparison"><span class="home-view-number" aria-hidden="true">02</span><strong data-i18n="sidebar.comparison">Model comparison</strong><span data-i18n="section.comparison.subtitle">Compare model costs side by side</span></button>
+            <button class="home-view-card" type="button" data-view-target="tokenCost"><span class="home-view-number" aria-hidden="true">03</span><strong data-i18n="sidebar.tokenCost">Tokens to cost</strong><span data-i18n="section.tokenCost.subtitle">Estimate actual spend from tokens</span></button>
+            <button class="home-view-card" type="button" data-view-target="budget"><span class="home-view-number" aria-hidden="true">04</span><strong data-i18n="sidebar.budget">Budget to tokens</strong><span data-i18n="section.budget.subtitle">Estimate tokens available from a budget</span></button>
+          </nav>
+        </section>
+
+        <section class="section" data-view-section="structure" hidden>
+          <div class="section-heading"><h2><span data-i18n="section.structure.title">① Usage breakdown</span> <button class="help-btn" type="button" data-help-section="structure" data-i18n-title="help.structure.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button> <span data-i18n="section.structure.subtitle">Start with three known token values</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="structureUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label></div></div>
+          <div class="method-grid">
+            <article class="panel method-card">
+              <h3 data-i18n="structure.knownDistribution">Known token distribution</h3>
+              <div class="fields">
+                <div class="field"><label id="cacheLabel" for="cache">Cache hit (M tokens)</label><div class="unit-input"><input id="cache" type="number" min="0" step="0.1"><span id="cacheUnit">M</span></div></div>
+                <div class="field"><label id="inputLabel" for="input">Input outside cache (M tokens)</label><div class="unit-input"><input id="input" type="number" min="0" step="0.1"><span id="inputUnit">M</span></div></div>
+                <div class="field"><label id="outputLabel" for="output">Output (M tokens)</label><div class="unit-input"><input id="output" type="number" min="0" step="0.1"><span id="outputUnit">M</span></div></div>
+              </div>
+              <div class="result-strip"><div class="metric"><div class="label" data-i18n="structure.inputOutputWithCache">Input : output (with cache)</div><strong id="ratioOut">--</strong></div><div class="metric"><div class="label" data-i18n="field.cacheHitRate">Cache hit rate</div><strong id="hitOut">--</strong></div></div>
+              <p class="formula" data-i18n="structure.formula">Input = cache hits + input outside cache.</p>
+            </article>
+            <article class="panel method-card">
+              <h3 data-i18n="structure.knownUsage">Known usage characteristics</h3>
+              <div class="fields two"><div class="field"><label for="knownRatio" data-i18n="field.inputOutput">Input : output</label><div class="unit-input"><input id="knownRatio" type="number" min="0" step="0.1"><span>: 1</span></div></div><div class="field"><label for="knownHit" data-i18n="field.cacheHitRate">Cache hit rate</label><div class="unit-input"><input id="knownHit" type="number" min="0" max="100" step="0.1"><span>%</span></div></div></div>
+              <div class="result-strip"><div class="metric"><div class="label" data-i18n="structure.inputShare">Input share of all tokens</div><strong id="inputShare">--</strong></div><div class="metric"><div class="label" data-i18n="structure.outputShare">Output share of all tokens</div><strong id="outputShare">--</strong></div></div>
+              <p class="formula" data-i18n="structure.usageFormula">Set the known ratio and cache hit rate to inspect usage.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" data-view-section="comparison" hidden>
+          <div class="section-heading"><h2><span data-i18n="section.comparison.title">② Model comparison</span> <button class="help-btn" type="button" data-help-section="comparison" data-i18n-title="help.comparison.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button> <span data-i18n="section.comparison.subtitle">Compare model costs side by side</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="comparisonUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="comparisonModelFilter"></div><button class="add-btn" id="addModel" type="button" data-i18n="action.addModel">+ Add model</button></div></div>
+          <div class="panel scenario-config" id="comparisonConfig"></div>
+          <div class="comparison-scroll"><div class="comparison" id="comparison"></div></div>
+          <p class="hint" data-i18n="comparison.hint">Shared fields apply to all models. Actual cost includes the spending multiplier.</p>
+        </section>
+
+        <section class="section scenario" data-view-section="tokenCost" hidden>
+          <div class="section-heading"><h2><span data-i18n="section.tokenCost.title">③ Tokens to cost</span> <button class="help-btn" type="button" data-help-section="tokenCost" data-i18n-title="help.tokenCost.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button> <span data-i18n="section.tokenCost.subtitle">Estimate actual spend from tokens</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="tokenUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="tokenModelFilter"></div><button class="add-btn" id="addTokenRow" type="button" data-i18n="action.addItem">+ Add item</button></div></div>
+          <div class="panel scenario-config" id="tokenConfig"></div><div class="panel scenario-panel"><div class="scenario-scroll"><div class="scenario-table" id="tokenRows"></div></div></div>
+          <p class="hint" data-i18n="scenario.hint">Shared fields apply to all rows. Clear the checkbox to customize a row.</p>
+        </section>
+
+        <section class="section scenario" data-view-section="budget" hidden>
+          <div class="section-heading"><h2><span data-i18n="section.budget.title">④ Budget to tokens</span> <button class="help-btn" type="button" data-help-section="budget" data-i18n-title="help.budget.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button> <span data-i18n="section.budget.subtitle">Estimate tokens available from a budget</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="budgetUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="budgetModelFilter"></div><button class="add-btn" id="addBudgetRow" type="button" data-i18n="action.addItem">+ Add item</button></div></div>
+          <div class="panel scenario-config" id="budgetConfig"></div><div class="panel scenario-panel"><div class="scenario-scroll"><div class="scenario-table" id="budgetRows"></div></div></div>
+          <p class="hint" data-i18n="scenario.hint">Shared fields apply to all rows. Clear the checkbox to customize a row.</p>
+        </section>
+
+        <section class="section settings-view" data-view-section="settings" aria-labelledby="settingsTitle" hidden>
+          <button class="settings-back-button" type="button" data-view-target="home"><span aria-hidden="true">←</span><span data-i18n="settings.back">Back to workspace</span></button>
+          <div class="settings-page-heading"><div><p class="settings-eyebrow" data-i18n="settings.eyebrow">Preferences and data</p><h2 id="settingsTitle" data-i18n="settings.title">Settings</h2></div></div>
+          <div class="settings-content">
+                <section class="settings-section is-active" id="settingsGeneralSection" data-settings-section="general" aria-labelledby="settingsGeneralTitle">
+                <div class="settings-panel-stack">
+                  <div class="settings-panel">
+                    <h3 id="settingsGeneralTitle" data-i18n="settings.general">General</h3>
+                    <div class="settings-fields"><label class="settings-field"><span data-i18n="settings.currency">Default currency</span><select id="currency"><option value="USD">USD $</option><option value="CNY">CNY &yen;</option></select></label><label class="settings-field"><span data-i18n="settings.language">Language</span><select id="language"><option value="zh-CN" data-i18n="language.zhCN">Simplified Chinese</option><option value="zh-TW" data-i18n="language.zhTW">Traditional Chinese</option><option value="en" data-i18n="language.en">English</option></select></label><label class="settings-field"><span data-i18n="settings.theme">Theme</span><select id="theme"><option value="system" data-i18n="theme.system">System</option><option value="light" data-i18n="theme.light">Light</option><option value="dark" data-i18n="theme.dark">Dark</option></select></label></div>
+                  </div>
+                  <div class="settings-panel">
+                    <h3 data-i18n="settings.modelVisibility">Model visibility</h3>
+                    <label class="settings-switch-field"><input id="showHostedModels" type="checkbox"><span><strong data-i18n="settings.showHostedModels">显示不常见模型厂商/第三方托管</strong><small data-i18n="settings.showHostedModelsDescription">开启后显示不常见模型厂商和第三方托管模型。</small></span></label>
+                  </div>
+                </div>
+              </section>
+              <section class="settings-section settings-models-section" id="settingsModelsSection" data-settings-section="models" aria-labelledby="settingsModelsTitle" hidden>
+                <div class="settings-section-heading">
+                  <div><h3 id="settingsModelsTitle" data-i18n="settings.models">Model management</h3><p data-i18n="settings.modelsDescription">Manage models used for calculation and comparison.</p></div>
+                  <label class="settings-search-desktop"><span class="visually-hidden" data-i18n="models.search">Search models</span><span aria-hidden="true">⌕</span><input id="settingsModelSearch" type="search" data-i18n-placeholder="models.searchPlaceholder" placeholder="Search by model or provider"></label>
+                  <button class="icon-btn settings-search-mobile" id="settingsSearchOpen" type="button" aria-haspopup="dialog" data-i18n-title="models.search" data-i18n-aria-label="models.search" title="Search models" aria-label="Search models">⌕</button>
+                </div>
+                <div class="settings-model-layout">
+                  <aside class="settings-filter-sidebar" aria-label="Model filters" data-i18n-aria-label="models.filters">
+                    <section class="filter-sidebar-section provider-filter-section"><div class="filter-sidebar-heading"><h4 data-i18n="models.provider">Provider</h4><button class="filter-clear" id="settingsProviderClear" type="button" data-i18n="models.allProviders">All providers</button></div><div class="provider-filter-list" id="settingsProviderList"></div></section>
+                    <section class="filter-sidebar-section"><h4 data-i18n="models.status">Status</h4><div class="status-filter-list" id="settingsStatusList"></div></section>
+                    <section class="filter-sidebar-section custom-pricing-filter-section"><h4 data-i18n="models.customPricing">Custom pricing</h4><div class="custom-pricing-filter-list" id="settingsCustomPricingList" role="group" aria-label="Custom pricing filter" data-i18n-aria-label="models.customPricing"></div></section>
+                    <div class="settings-model-actions"><button class="add-btn" id="settingsAddModel" type="button"><span aria-hidden="true">+</span><span data-i18n="action.addModel">Add model</span></button><button class="sync-btn" id="settingsSyncPrices" type="button"><span aria-hidden="true">↻</span><span data-i18n="action.syncPricing">Sync prices</span></button></div>
+                  </aside>
+                  <div class="settings-model-main">
+                    <div class="settings-mobile-filters">
+                      <details class="mobile-provider-picker" id="settingsMobileProviderPicker"><summary id="settingsMobileProviderSummary" data-i18n="models.allProviders">All providers</summary><div class="mobile-provider-options" id="settingsMobileProviderOptions"></div></details>
+                      <label><span class="visually-hidden" data-i18n="models.status">Status</span><select id="settingsMobileStatus"><option value="" data-i18n="models.allStatuses">All statuses</option><option value="enabled" data-i18n="models.status.enabled">Enabled</option><option value="disabled" data-i18n="models.status.disabled">Disabled</option></select></label>
+                      <div class="settings-mobile-custom-pricing"><span class="visually-hidden" data-i18n="models.customPricing">Custom pricing</span><div class="custom-pricing-filter-list" id="settingsMobileCustomPricing" role="group" aria-label="Custom pricing filter" data-i18n-aria-label="models.customPricing"></div></div>
+                    </div>
+                    <div class="catalog-toolbar settings-catalog-status"><span class="pricing-status" id="pricingStatus" role="status" aria-live="polite"></span><span class="settings-model-summary" id="settingsModelSummary" role="status" aria-live="polite"></span><label class="settings-page-size"><span data-i18n="models.pageSize">每页</span><select id="settingsModelPageSize"><option value="12">12</option><option value="24">24</option></select></label></div>
+                    <div class="settings-model-grid" id="settingsModelGrid"><div class="settings-model-list" id="settingsModelList" aria-live="polite" data-empty-label="No models" data-i18n-empty="settings.modelsEmpty"></div></div>
+                    <div class="settings-model-pagination" id="settingsModelPagination" hidden></div>
+                  </div>
+                </div>
+              </section>
+              <section class="settings-section about-section" id="settingsAboutSection" data-settings-section="about" aria-labelledby="settingsAboutTitle" hidden>
+                <div class="settings-section-heading about-heading"><div><h3 id="settingsAboutTitle" data-i18n="settings.about">About us</h3><p data-i18n="about.subtitle">Project information, links, and the open-source resources behind this tool.</p></div></div>
+                <div class="about-brand-row"><img class="about-brand-logo" src="assets/about/memspace-icon.svg" alt="MemoSpace" data-i18n-alt="about.memspaceLogo"><div><h4 data-i18n="about.productName">MemoSpace Token Cost Calc</h4><p data-i18n="about.productTagline">A local workspace for understanding AI token costs.</p></div></div>
+                <div class="about-grid">
+                  <section class="about-block about-project-card" aria-labelledby="aboutProjectTitle"><h4 id="aboutProjectTitle" data-i18n="about.projectTitle">Project introduction</h4><p data-i18n="about.projectDescription">Token Cost Calc is a local AI token cost estimation and model pricing comparison tool. It estimates API costs from token usage, pricing, exchange rates, and spending multipliers, and can also estimate available tokens from a budget.</p></section>
+                  <section class="about-block about-author-card" aria-labelledby="aboutAuthorTitle"><h4 id="aboutAuthorTitle" data-i18n="about.authorTitle">Created by</h4><div class="about-author-row"><img class="about-author-avatar" src="assets/about/author-avatar.jpg" alt="Jason Stephen" data-i18n-alt="about.authorAvatar"><div><strong>Jason Stephen</strong><p data-i18n="about.authorDescription">Independent developer and creator of MemoSpace.</p></div></div><nav class="about-links" aria-label="Creator links" data-i18n-aria-label="about.creatorLinks"><a class="about-icon-link" href="https://github.com/JasonStephen" target="_blank" rel="noreferrer" title="GitHub" aria-label="GitHub"><img src="assets/about/github.svg" alt=""></a><a class="about-icon-link" href="https://space.bilibili.com/39750208" target="_blank" rel="noreferrer" title="Bilibili" aria-label="Bilibili"><img src="assets/about/bilibili.svg" alt=""></a><a class="about-icon-link" href="https://www.youtube.com/@stephenjason280" target="_blank" rel="noreferrer" title="YouTube" aria-label="YouTube"><img src="assets/about/youtube.svg" alt=""></a></nav></section>
+                </div>
+                <section class="about-block about-sources" aria-labelledby="aboutSourcesTitle"><h4 id="aboutSourcesTitle" data-i18n="about.sourcesTitle">Data and asset sources</h4><ul class="about-source-list"><li><div class="about-source-main"><strong data-i18n="about.litellmName">LiteLLM model pricing</strong><a class="about-repo-link" href="https://github.com/BerriAI/litellm" target="_blank" rel="noreferrer"><img src="assets/about/github.svg" alt=""><span>github.com/BerriAI/litellm</span></a></div><a class="about-source-raw" href="https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json" target="_blank" rel="noreferrer" data-i18n="about.rawData">Raw JSON</a></li><li><div class="about-source-main"><strong data-i18n="about.lobeIconsName">Lobe Icons brand icons</strong><a class="about-repo-link" href="https://github.com/lobehub/lobe-icons" target="_blank" rel="noreferrer"><img src="assets/about/github.svg" alt=""><span>github.com/lobehub/lobe-icons</span></a><span data-i18n="about.localCopy">Icons used by this app are stored locally.</span></div></li></ul></section>
+                <section class="about-license" aria-labelledby="aboutLicenseTitle"><h4 id="aboutLicenseTitle" data-i18n="about.licenseTitle">Project license</h4><p data-i18n="about.licenseStatus">This project is released under the Apache License 2.0.</p><p class="about-license-note" data-i18n="about.iconLicense">The bundled Lobe Icons assets are provided under the MIT License.</p></section>
+              </section>
+              <section class="settings-reset-row" id="settingsResetSection" data-settings-section="reset" hidden><div><strong data-i18n="settings.resetTitle">Reset application</strong><p data-i18n="settings.resetDescription">Restore default data and preferences.</p></div><button class="text-btn" id="reset" type="button" data-i18n="header.reset" data-i18n-title="header.reset" title="Reset to defaults">Reset to defaults</button></section>
+          </div>
+        </section>
+        <p class="legend" data-i18n="footer.note">Note: cache hits count as part of input. Model pricing, rates, and multipliers are controlled by you.</p>
+        <p class="foot" data-i18n="footer.storage">Local calculator / state stored in token-cost-calc.json</p>
+      </main>
+    </div>
+  </div>
+
+  <dialog class="confirm-dialog" id="modelDeleteDialog" aria-labelledby="modelDeleteTitle"><form method="dialog"><h3 id="modelDeleteTitle" data-i18n="dialog.deleteModelTitle">Delete model?</h3><p><span data-i18n="dialog.deleteModelPrefix">Delete</span> <strong id="modelDeleteName"></strong> <span data-i18n="dialog.deleteModelSuffix">and its selections.</span></p><div class="confirm-dialog-actions"><button class="text-btn" value="cancel" data-i18n="action.cancel">Cancel</button><button class="danger-btn" id="confirmModelDelete" type="button" data-i18n="action.deleteModel">Delete model</button></div></form></dialog>
+  <dialog class="model-config-dialog" id="modelConfigDialog" aria-labelledby="modelConfigTitle">
+    <form method="dialog" class="model-config-form">
+      <div class="help-dialog-heading"><h3 id="modelConfigTitle" data-i18n="model.customPricing.title">Custom price and configuration</h3><button class="icon-btn" id="closeModelConfig" type="button" data-i18n-title="action.cancel" data-i18n-aria-label="action.cancel" aria-label="Cancel">×</button></div>
+      <p data-i18n="model.customPricing.description">Override the price and calculation settings for this model.</p>
+      <div class="model-config-fields">
+        <label><span data-i18n="model.customPricing.cache">Cache price</span><input id="modelConfigCache" type="number" min="0" step="0.001"></label>
+        <label><span data-i18n="model.customPricing.input">Input price</span><input id="modelConfigInput" type="number" min="0" step="0.001"></label>
+        <label><span data-i18n="model.customPricing.output">Output price</span><input id="modelConfigOutput" type="number" min="0" step="0.001"></label>
       </div>
-    </header>
-
-    <section class="section collapsible-section">
-      <div class="section-heading"><h2><span data-i18n="section.structure.title">① 结构反推</span> <button class="help-btn" type="button" data-help-section="structure" data-i18n-title="help.structure.summary" data-i18n-aria-label="help.open" title="用于根据已知 Token 分布或使用特征，反推输入、输出与缓存占比。" aria-label="查看帮助">?</button> <span data-i18n="section.structure.subtitle">先填你已有的三项 Token</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="structureUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
-      <div class="method-grid">
-        <article class="panel method-card">
-          <h3 data-i18n="structure.knownDistribution">已知 Token 分布</h3>
-          <div class="fields">
-            <div class="field"><label id="cacheLabel" for="cache">缓存命中（M Token）</label><div class="unit-input"><input id="cache" type="number" min="0" step="0.1"><span id="cacheUnit">M</span></div></div>
-            <div class="field"><label id="inputLabel" for="input">输入（缓外，M Token）</label><div class="unit-input"><input id="input" type="number" min="0" step="0.1"><span id="inputUnit">M</span></div></div>
-            <div class="field"><label id="outputLabel" for="output">输出（M Token）</label><div class="unit-input"><input id="output" type="number" min="0" step="0.1"><span id="outputUnit">M</span></div></div>
-          </div>
-          <div class="result-strip">
-            <div class="metric"><div class="label" data-i18n="structure.inputOutputWithCache">输入 : 输出（含缓存）</div><strong id="ratioOut">--</strong></div>
-            <div class="metric"><div class="label" data-i18n="field.cacheHitRate">缓存命中率</div><strong id="hitOut">--</strong></div>
-          </div>
-          <p class="formula" data-i18n="structure.formula">输入 = 缓存命中 + 缓外输入；命中率 = 缓存命中 / 输入。</p>
-        </article>
-        <article class="panel method-card">
-          <h3 data-i18n="structure.knownUsage">已知使用特征</h3>
-          <div class="fields two">
-            <div class="field"><label for="knownRatio" data-i18n="field.inputOutput">输入 : 输出</label><div class="unit-input"><input id="knownRatio" type="number" min="0" step="0.1"><span>: 1</span></div></div>
-            <div class="field"><label for="knownHit" data-i18n="field.cacheHitRate">缓存命中率</label><div class="unit-input"><input id="knownHit" type="number" min="0" max="100" step="0.1"><span>%</span></div></div>
-          </div>
-          <div class="result-strip">
-            <div class="metric"><div class="label" data-i18n="structure.inputShare">输入占全部 Token</div><strong id="inputShare">--</strong></div>
-            <div class="metric"><div class="label" data-i18n="structure.outputShare">输出占全部 Token</div><strong id="outputShare">--</strong></div>
-          </div>
-          <p class="formula" data-i18n="structure.usageFormula">输入与输出比、缓存命中率可分别设置；此处用于查看已有使用特征。</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="section collapsible-section">
-      <div class="section-heading"><h2><span data-i18n="section.comparison.title">② 横向对比</span> <button class="help-btn" type="button" data-help-section="comparison" data-i18n-title="help.comparison.summary" data-i18n-aria-label="help.open" title="用于在相同 Token 口径下比较不同模型的费用。" aria-label="查看帮助">?</button> <span data-i18n="section.comparison.subtitle">每个模型可独立设置单价、倍率和美元兑人民币汇率</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="comparisonUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="comparisonModelFilter"></div><button class="add-btn" id="addModel" data-i18n="action.addModel">＋ 添加模型</button><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
-      <div class="panel scenario-config" id="comparisonConfig"></div>
-      <div class="comparison-scroll"><div class="comparison" id="comparison"></div></div>
-      <p class="hint" data-i18n="comparison.hint">勾选共享后，该字段将应用到所有模型；取消勾选后可为每个模型单独设置。实际费用已乘开支倍率，并同时显示美元与人民币。</p>
-    </section>
-
-    <section class="section scenario collapsible-section">
-      <div class="section-heading"><h2><span data-i18n="section.tokenCost.title">③ Token 转价格</span> <button class="help-btn" type="button" data-help-section="tokenCost" data-i18n-title="help.tokenCost.summary" data-i18n-aria-label="help.open" title="用于按总 Token 估算不同模型的实际开支。" aria-label="查看帮助">?</button> <span data-i18n="section.tokenCost.subtitle">按总 Token 估算不同模型的实际开支</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="tokenUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="tokenModelFilter"></div><button class="add-btn" id="addTokenRow" data-i18n="action.addItem">＋ 添加条目</button><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
-      <div class="panel scenario-config" id="tokenConfig"></div>
-      <div class="panel scenario-panel"><div class="scenario-scroll"><div class="scenario-table" id="tokenRows"></div></div></div>
-      <p class="hint" data-i18n="scenario.hint">勾选共享后，该字段将应用到所有条目；取消勾选后可为每一条单独设置。</p>
-    </section>
-
-    <section class="section scenario collapsible-section">
-      <div class="section-heading"><h2><span data-i18n="section.budget.title">④ 价格转 Token</span> <button class="help-btn" type="button" data-help-section="budget" data-i18n-title="help.budget.summary" data-i18n-aria-label="help.open" title="用于按预算估算不同模型可使用的总 Token。" aria-label="查看帮助">?</button> <span data-i18n="section.budget.subtitle">按预算估算可使用的总 Token</span></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token 单位</span><select id="budgetUnit"><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="budgetModelFilter"></div><button class="add-btn" id="addBudgetRow" data-i18n="action.addItem">＋ 添加条目</button><button class="icon-btn section-toggle" data-toggle data-i18n-title="action.collapse" title="折叠此板块" aria-expanded="true">^</button></div></div>
-      <div class="panel scenario-config" id="budgetConfig"></div>
-      <div class="panel scenario-panel"><div class="scenario-scroll"><div class="scenario-table" id="budgetRows"></div></div></div>
-      <p class="hint" data-i18n="scenario.hint">勾选共享后，该字段将应用到所有条目；取消勾选后可为每一条单独设置。</p>
-    </section>
-    <p class="legend" data-i18n="footer.note">注：缓存命中视为输入的一部分。模型价格、汇率和开支倍率均由你控制；计算结果仅包含模型 Token 费用，不含工具调用、税费及其他服务费用。</p>
-    <p class="foot" data-i18n="footer.storage">本地计算器 / 状态保存在 token-cost-calc.json</p>
-  </main>
-  <dialog class="confirm-dialog" id="modelDeleteDialog" aria-labelledby="modelDeleteTitle">
-    <form method="dialog">
-      <h3 id="modelDeleteTitle" data-i18n="dialog.deleteModelTitle">删除模型？</h3>
-      <p><span data-i18n="dialog.deleteModelPrefix">将删除</span> <strong id="modelDeleteName"></strong> <span data-i18n="dialog.deleteModelSuffix">及其在各板块中的模型选择。</span></p>
-      <div class="confirm-dialog-actions"><button class="text-btn" value="cancel" data-i18n="action.cancel">取消</button><button class="danger-btn" id="confirmModelDelete" type="button" data-i18n="action.deleteModel">删除模型</button></div>
+      <div class="confirm-dialog-actions"><button class="text-btn restore-price-btn" id="resetModelConfig" type="button" data-i18n="model.customPricing.reset" hidden>Restore catalog prices</button><button class="text-btn" id="cancelModelConfig" type="button" data-i18n="model.customPricing.cancel">Cancel</button><button class="add-btn" id="saveModelConfig" type="button" data-i18n="model.customPricing.save">Save</button></div>
     </form>
   </dialog>
-  <dialog id="helpDialog" class="help-dialog" aria-labelledby="helpDialogTitle">
-    <div class="help-dialog-content">
-      <div class="help-dialog-heading"><h3 id="helpDialogTitle"></h3><button class="icon-btn help-close" id="closeHelpDialog" type="button" data-i18n-title="help.close" data-i18n-aria-label="help.close" title="关闭帮助" aria-label="关闭帮助">×</button></div>
-      <p id="helpDialogIntro"></p>
-      <ul id="helpDialogPoints"></ul>
-      <p class="help-dialog-note" id="helpDialogNote"></p>
-    </div>
+  <dialog class="model-add-dialog" id="modelAddDialog" aria-labelledby="modelAddTitle">
+    <form method="dialog" class="model-config-form">
+      <div class="help-dialog-heading"><h3 id="modelAddTitle" data-i18n="model.add.title">Add custom model</h3><button class="icon-btn" id="closeModelAdd" type="button" data-i18n-title="action.cancel" data-i18n-aria-label="action.cancel" aria-label="Cancel">×</button></div>
+      <p data-i18n="model.add.description">Add a model for local calculations.</p>
+      <div class="model-add-fields">
+        <label><span data-i18n="model.add.name">Model name</span><input id="newModelName" type="text" required maxlength="120" data-i18n-placeholder="model.add.namePlaceholder" placeholder="Enter model name"></label>
+        <label><span data-i18n="model.add.type">Model type</span><select id="newModelCategory"></select></label>
+        <label><span data-i18n="model.add.provider">Provider</span><select id="newModelProvider"></select></label>
+      </div>
+      <div class="confirm-dialog-actions"><button class="text-btn" id="cancelModelAdd" type="button" data-i18n="action.cancel">Cancel</button><button class="add-btn" id="saveModelAdd" type="button" data-i18n="model.add.save">Add model</button></div>
+    </form>
   </dialog>
-
+  <dialog class="settings-search-dialog" id="settingsSearchDialog" aria-labelledby="settingsSearchTitle"><form method="dialog"><div class="help-dialog-heading"><h3 id="settingsSearchTitle" data-i18n="models.search">Search models</h3><button class="icon-btn" id="settingsSearchClose" type="button" data-i18n-title="action.cancel" data-i18n-aria-label="action.cancel" aria-label="Cancel">×</button></div><label><span class="visually-hidden" data-i18n="models.search">Search models</span><input id="settingsModelSearchMobile" type="search" data-i18n-placeholder="models.searchPlaceholder" placeholder="Search by model or provider"></label></form></dialog>
+  <dialog id="helpDialog" class="help-dialog" aria-labelledby="helpDialogTitle"><div class="help-dialog-content"><div class="help-dialog-heading"><h3 id="helpDialogTitle"></h3><button class="icon-btn help-close" id="closeHelpDialog" type="button" data-i18n-title="help.close" data-i18n-aria-label="help.close" title="Close help" aria-label="Close help">×</button></div><p id="helpDialogIntro"></p><ul id="helpDialogPoints"></ul><p class="help-dialog-note" id="helpDialogNote"></p></div></dialog>
   <script src="locales/zh-CN.js"></script>
   <script src="locales/zh-TW.js"></script>
   <script src="locales/en.js"></script>
