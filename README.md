@@ -26,7 +26,7 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
-`start.bat` 会检查依赖，并使用 `pythonw.exe` 启动桌面应用；开发调试可使用 `--devtools` 参数。
+`start.bat` 会检查依赖，并使用 `pythonw.exe` 启动桌面应用。需要调试时，可手动运行 `python app.py --devtools`。
 
 ## 模型价格
 

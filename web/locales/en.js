@@ -120,7 +120,6 @@ window.localeData["en"] = {
   "price.perMillionTokens": "per 1M tokens",
   "settings.resetTitle": "Reset application",
   "settings.resetDescription": "Restore default data and preferences.",
-  "about.subtitle": "Project information, links, and the open-source resources behind this tool.",
   "about.memspaceLogo": "MemoSpace logo",
   "about.authorAvatar": "Jason Stephen avatar",
   "about.productName": "MemoSpace Token Cost Calc",

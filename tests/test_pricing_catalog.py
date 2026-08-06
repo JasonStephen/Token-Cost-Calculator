@@ -84,19 +84,20 @@ class PricingCatalogTests(unittest.TestCase):
         self.assertIn('.sidebar-backdrop', css_source)
         self.assertIn('transform:translateX(calc(-100% + 58px))', css_source)
 
-    def test_batch_launcher_opens_devtools(self):
+    def test_batch_launcher_keeps_devtools_manual(self):
         root = Path(__file__).resolve().parents[1]
         app_source = (root / "app.py").read_text(encoding="utf-8")
         batch_source = (root / "start.bat").read_text(encoding="utf-8")
 
         self.assertIn('debug="--devtools" in sys.argv[1:]', app_source)
         self.assertIn("webview.start(debug=debug)", app_source)
-        self.assertEqual(batch_source.count("--devtools"), 2)
+        self.assertNotIn("--devtools", batch_source)
 
     def test_about_page_ui_contract(self):
         root = Path(__file__).resolve().parents[1]
         html_source = (root / "web" / "index.html").read_text(encoding="utf-8")
         app_source = (root / "web" / "app.js").read_text(encoding="utf-8")
+        css_source = (root / "web" / "styles.css").read_text(encoding="utf-8")
 
         self.assertIn('data-settings-target="about"', html_source)
         self.assertIn('id="settingsAboutSection"', html_source)
@@ -110,6 +111,10 @@ class PricingCatalogTests(unittest.TestCase):
         self.assertIn("https://www.youtube.com/@stephenjason280", html_source)
         self.assertIn("https://github.com/BerriAI/litellm", html_source)
         self.assertIn("https://github.com/lobehub/lobe-icons", html_source)
+        self.assertNotIn('data-i18n="about.subtitle"', html_source)
+        self.assertIn('class="about-scroll"', html_source)
+        self.assertIn("settings-about-active", app_source)
+        self.assertIn(".settings-view.settings-about-active .about-scroll", css_source)
         self.assertIn("'about'", app_source)
         self.assertTrue((root / "web" / "assets" / "about" / "memspace-icon.svg").is_file())
         self.assertTrue((root / "web" / "assets" / "about" / "author-avatar.jpg").is_file())

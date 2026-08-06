@@ -17,10 +17,10 @@ if errorlevel 1 (
 for /f "usebackq delims=" %%I in (`python -c "import os, sys; print(os.path.join(os.path.dirname(sys.executable), 'pythonw.exe'))"`) do set "PYTHONW=%%I"
 
 if exist "%PYTHONW%" (
-    start "" "%PYTHONW%" "%~dp0app.py" --devtools
+    start "" "%PYTHONW%" "%~dp0app.py"
     exit /b 0
 )
 
 rem Fallback for Python installations without pythonw.exe.
-start "" /b python "%~dp0app.py" --devtools
+start "" /b python "%~dp0app.py"
 exit /b 0

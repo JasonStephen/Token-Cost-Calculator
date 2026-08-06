@@ -409,7 +409,9 @@
       if (!settingsView) return;
       const shell = document.querySelector('.app-shell');
       settingsView.classList.toggle('settings-models-active', activeSection === 'models');
+      settingsView.classList.toggle('settings-about-active', activeSection === 'about');
       shell?.classList.toggle('settings-models-active', activeSection === 'models' && state?.activeView === 'settings');
+      shell?.classList.toggle('settings-about-active', activeSection === 'about' && state?.activeView === 'settings');
       settingsView.querySelectorAll('[data-settings-section]').forEach(item => {
         const active = item.dataset.settingsSection === activeSection;
         item.hidden = !active;
@@ -443,6 +445,7 @@
       document.querySelectorAll('[data-view-footer]').forEach(element => { element.hidden = activeView === 'home' || activeView === 'settings'; });
       document.querySelector('.sidebar')?.classList.toggle('is-settings-mode', activeView === 'settings');
       document.querySelector('.app-shell')?.classList.toggle('settings-models-active', activeView === 'settings' && state?.settingsSection === 'models');
+      document.querySelector('.app-shell')?.classList.toggle('settings-about-active', activeView === 'settings' && state?.settingsSection === 'about');
       if (state) {
         state.activeView = activeView;
         if (activeView === 'settings') setSettingsSection(state.settingsSection, false);

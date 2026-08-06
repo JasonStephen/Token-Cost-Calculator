@@ -56,7 +56,6 @@ window.localeData["zh-CN"] = {
   "settings.source.other": "其他来源",
   "settings.resetTitle": "重置应用",
   "settings.resetDescription": "恢复默认数据与偏好设置。",
-  "about.subtitle": "查看项目介绍、作者链接以及本工具使用的开源资源。",
   "about.memspaceLogo": "MemoSpace 图标",
   "about.authorAvatar": "Jason Stephen 头像",
   "about.productName": "MemoSpace Token Cost Calc",

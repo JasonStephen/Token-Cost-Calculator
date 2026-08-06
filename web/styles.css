@@ -406,6 +406,19 @@
     .settings-models-section .settings-model-grid::-webkit-scrollbar-button { display:none; width:0; height:0; }
     .settings-models-section .settings-model-pagination { flex:0 0 auto; min-height:36px; margin:8px 0 0; padding:2px 0 3px; }
     .settings-models-section .settings-model-list { min-height:100%; align-content:start; padding-bottom:18px; }
+    .app-shell.settings-about-active { min-height:100vh; height:100vh; overflow:hidden; }
+    .app-shell.settings-about-active .workspace { min-height:0; height:100vh; overflow:hidden; }
+    .app-shell.settings-about-active .app { min-height:0; height:100vh; display:grid; grid-template-rows:minmax(0, 1fr); overflow:hidden; }
+    .settings-view.settings-about-active:not([hidden]) { min-height:0; height:auto; align-self:stretch; display:grid !important; grid-template-rows:auto auto minmax(0, 1fr); overflow:hidden; }
+    .settings-view.settings-about-active[hidden] { display:none !important; }
+    .settings-view.settings-about-active .settings-content { min-height:0; height:auto; display:flex; flex-direction:column; overflow:hidden; }
+    .settings-view.settings-about-active .settings-content .about-section.is-active { min-height:0; height:auto; flex:1 1 auto; display:flex; flex-direction:column; margin-bottom:0; padding-bottom:0; border-bottom:0; overflow:hidden; }
+    .settings-view.settings-about-active .about-heading { flex:0 0 auto; }
+    .settings-view.settings-about-active .about-scroll { min-height:0; flex:1 1 auto; overflow-y:auto; overflow-x:hidden; scrollbar-gutter:stable; scrollbar-width:auto; scrollbar-color:var(--ink) var(--paper); padding:2px 10px 18px 0; }
+    .settings-view.settings-about-active .about-scroll::-webkit-scrollbar { width:13px; }
+    .settings-view.settings-about-active .about-scroll::-webkit-scrollbar-track { border:2px solid var(--line); background:var(--paper); }
+    .settings-view.settings-about-active .about-scroll::-webkit-scrollbar-thumb { border:2px solid var(--paper); background:var(--ink); }
+    .settings-view.settings-about-active .about-scroll::-webkit-scrollbar-button { display:none; width:0; height:0; }
     .visually-hidden { position:absolute !important; width:1px !important; height:1px !important; padding:0 !important; margin:-1px !important; overflow:hidden !important; clip:rect(0,0,0,0) !important; white-space:nowrap !important; border:0 !important; }
     .settings-search-desktop { width:min(390px, 42%); display:grid; grid-template-columns:28px minmax(0, 1fr); align-items:center; margin:0; border:2px solid var(--line); background:var(--white); box-shadow:3px 3px 0 var(--ink); }
     .settings-search-desktop > span:not(.visually-hidden) { text-align:center; font-family:Arial,sans-serif; font-size:20px; }
