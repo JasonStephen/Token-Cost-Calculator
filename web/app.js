@@ -293,7 +293,7 @@
       return normalized;
     }
     function normalizeRows(rows, type, config) {
-      const source = Array.isArray(rows) && rows.length ? rows : [newRow(type, config)];
+      const source = Array.isArray(rows) ? rows : [newRow(type, config)];
       return source.map(row => {
         const normalized = {};
         fieldsFor(type).forEach(field => {
@@ -394,9 +394,7 @@
       };
       const selectionFor = key => {
         const source = Array.isArray(saved[key]) ? saved[key] : legacySelected;
-        const selected = [...new Set(source.map(resolveModelId).filter(id => id && models.some(model => model.id === id && modelEnabled(model))))].slice(0, 3);
-        const fallback = models.find(modelEnabled);
-        return selected.length ? selected : (fallback ? [fallback.id] : []);
+        return [...new Set(source.map(resolveModelId).filter(id => id && models.some(model => model.id === id && modelEnabled(model))))];
       };
       const comparisonSelectedModelIds = Array.isArray(saved.comparisonSelectedModelIds)
         ? [...new Set(saved.comparisonSelectedModelIds.map(resolveModelId).filter(id => id && models.some(model => model.id === id && modelEnabled(model))))]
@@ -815,8 +813,6 @@
     function ensureComparisonSelection() {
       const key = 'comparisonSelectedModelIds';
       state[key] = [...new Set((state[key] || []).filter(id => state.models.some(model => model.id === id && modelEnabled(model))))];
-      const fallback = state.models.find(modelEnabled);
-      if (!state[key].length && fallback) state[key] = [fallback.id];
     }
     function comparisonModels() {
       ensureComparisonSelection();
@@ -830,9 +826,7 @@
     }
     function ensureSelection(type) {
       const key = selectedKey(type);
-      state[key] = [...new Set((state[key] || []).filter(id => state.models.some(model => model.id === id && modelEnabled(model))))].slice(0, 3);
-      const fallback = state.models.find(modelEnabled);
-      if (!state[key].length && fallback) state[key] = [fallback.id];
+      state[key] = [...new Set((state[key] || []).filter(id => state.models.some(model => model.id === id && modelEnabled(model))))];
     }
     function renderModelFilter(type) {
       ensureSelection(type);
@@ -863,8 +857,7 @@
         const provider = modelProvider(model) || uiText('model.add.providerOther', 'Others', '其他');
         return (normalizedProvider(model.providerId || provider) || 'others') === modelSelectionProvider;
       });
-      const max = modelSelectionType === 'comparison' ? 0 : 3;
-      modelsRoot.innerHTML = '<div class="model-selection-model-heading"><strong>' + escapeHtml(groups.find(group => group.id === modelSelectionProvider)?.label || t('filter.availableModels')) + '</strong>' + (max ? '<span>' + t('filter.maxSelected', {count:max}) + '</span>' : '') + '</div>' + (visibleModels.length ? visibleModels.map(model => {
+      modelsRoot.innerHTML = '<div class="model-selection-model-heading"><strong>' + escapeHtml(groups.find(group => group.id === modelSelectionProvider)?.label || t('filter.availableModels')) + '</strong></div>' + (visibleModels.length ? visibleModels.map(model => {
         const checked = modelSelectionDraft.has(model.id);
         return '<label class="model-selection-model' + (checked ? ' is-selected' : '') + '"><input type="checkbox" data-model-selection-model="' + escapeHtml(model.id) + '"' + (checked ? ' checked' : '') + '><span>' + modelBadge(model) + '</span></label>';
       }).join('') : '<p class="model-selection-empty">' + t('filter.noModels') + '</p>');
@@ -875,12 +868,9 @@
       modelsRoot.querySelectorAll('[data-model-selection-model]').forEach(input => input.addEventListener('change', event => {
         const id = event.target.dataset.modelSelectionModel;
         if (event.target.checked) {
-          if (max && modelSelectionDraft.size >= max) modelSelectionDraft.delete(modelSelectionDraft.values().next().value);
           modelSelectionDraft.add(id);
-        } else if (modelSelectionDraft.size > 1 || modelSelectionType === 'comparison') {
-          modelSelectionDraft.delete(id);
         } else {
-          event.target.checked = true;
+          modelSelectionDraft.delete(id);
         }
         renderModelSelectionDialog();
       }));
@@ -1050,11 +1040,17 @@
       });
       root.querySelectorAll('[data-remove-row]').forEach(el => el.addEventListener('click', event => {
         const type = event.target.dataset.removeType;
-        if (state[type].length > 1) {
+        if (state[type].length) {
           state[type].splice(Number(event.target.dataset.removeRow), 1);
           if (type === 'tokenRows') renderTokenRows(); else renderBudgetRows();
           save();
         }
+      }));
+      root.querySelectorAll('[data-create-row]').forEach(el => el.addEventListener('click', event => {
+        const type = event.currentTarget.dataset.createRow;
+        state[type].push(newRow(type, configFor(type)));
+        if (type === 'tokenRows') renderTokenRows(); else renderBudgetRows();
+        save();
       }));
     }
     function prepareTable(root, fields, models) {
@@ -1062,6 +1058,11 @@
     }
     function renderTokenRows() {
       const root = $('tokenRows'), config = state.tokenConfig;
+      if (!state.tokenRows.length) {
+        root.innerHTML = '<button class="scenario-empty-state" type="button" data-create-row="tokenRows">' + t('scenario.emptyAdd') + '</button>';
+        bindScenarioRows(root);
+        return;
+      }
       const fields = fieldsFor('tokenRows').filter(field => !config.shared[field.key]);
       const models = selectedModels('tokenRows');
       const entries = state.tokenRows.map((row, index) => {
@@ -1078,6 +1079,11 @@
     }
     function renderBudgetRows() {
       const root = $('budgetRows'), config = state.budgetConfig;
+      if (!state.budgetRows.length) {
+        root.innerHTML = '<button class="scenario-empty-state" type="button" data-create-row="budgetRows">' + t('scenario.emptyAdd') + '</button>';
+        bindScenarioRows(root);
+        return;
+      }
       const fields = fieldsFor('budgetRows').filter(field => !config.shared[field.key]);
       const models = selectedModels('budgetRows');
       const resultUnit = scenarioTokenUnit('budgetRows');

@@ -182,7 +182,10 @@
     .scenario { margin-top:21px; }
     .section-actions { display:flex; align-items:center; gap:10px; }
     .tool-view-actions { min-width:0; width:100%; display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:10px; margin:0 0 12px; }
+    .tool-view-actions .structure-unit { position:relative; }
     .tool-view-actions .structure-unit select, .tool-view-actions .model-select-btn, .tool-view-actions .add-item-icon-btn { height:40px; min-height:40px; }
+    .tool-view-actions .structure-unit select { appearance:none; -webkit-appearance:none; padding:0 30px 0 9px; border:2px solid var(--line); border-radius:3px; background:var(--white); box-shadow:none; line-height:1; }
+    .tool-view-actions .structure-unit::after { content:""; position:absolute; right:11px; top:50%; width:7px; height:7px; border-right:2px solid var(--ink); border-bottom:2px solid var(--ink); pointer-events:none; transform:translateY(-65%) rotate(45deg); }
     .tool-view-actions .model-select-btn, .tool-view-actions .add-item-icon-btn { padding:6px 8px; border-radius:3px; background:var(--white); box-shadow:none; }
     .tool-view-actions .model-select-btn:hover, .tool-view-actions .model-select-btn:focus-visible, .tool-view-actions .add-item-icon-btn:hover, .tool-view-actions .add-item-icon-btn:focus-visible { background:var(--white); outline:none; transform:none; }
     .tool-view-actions .model-select-btn:focus-visible, .tool-view-actions .add-item-icon-btn:focus-visible { box-shadow:3px 3px 0 var(--yellow); }
@@ -262,6 +265,8 @@
     .scenario-table::-webkit-scrollbar { height:11px; }
     .scenario-table::-webkit-scrollbar-track { border-top:2px solid var(--line); background:var(--paper); }
     .scenario-table::-webkit-scrollbar-thumb { border:2px solid var(--paper); background:var(--ink); }
+    .scenario-empty-state { width:100%; min-height:100%; display:grid; place-items:center; border:2px dashed var(--line); background:var(--panel-bg); color:var(--muted); font-family:inherit; font-size:15px; font-weight:900; }
+    .scenario-empty-state:hover, .scenario-empty-state:focus-visible { background:var(--yellow); color:var(--accent-ink); outline:2px solid var(--line); outline-offset:-2px; }
     .scenario-entry-list { width:max-content; min-width:0; min-height:100%; display:grid; grid-auto-flow:column; grid-auto-columns:180px; gap:14px; }
     .scenario-entry { min-width:0; min-height:0; height:100%; display:flex; flex-direction:column; overflow:hidden; border:2px solid var(--line); background:var(--panel-bg); box-shadow:4px 4px 0 var(--ink); }
     .scenario-row-inputs { min-width:0; flex:0 0 auto; display:grid; grid-template-columns:1fr; }

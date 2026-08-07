@@ -19,6 +19,7 @@ class PricingCatalogTests(unittest.TestCase):
             "models.originalPricing",
             "models.nonCustomPricing",
             "models.pricingSelected",
+            "scenario.emptyAdd",
         }
         locale_files = {
             "zh-CN": root / "web" / "locales" / "zh-CN.js",
@@ -137,6 +138,9 @@ class PricingCatalogTests(unittest.TestCase):
         self.assertIn(".scenario-config { width:100%; max-width:760px; display:grid; grid-template-columns:repeat(5, minmax(0, 1fr));", css_source)
         self.assertGreaterEqual(css_source.count(".section-actions { width:100%; flex-wrap:wrap; justify-content:flex-end; }"), 2)
         self.assertIn(".scenario-config { grid-template-columns:repeat(2, minmax(0, 1fr)); max-width:none; }", css_source)
+        self.assertNotIn("slice(0, 3)", app_source)
+        self.assertNotIn("modelSelectionDraft.size > 1", app_source)
+        self.assertNotIn("filter.maxSelected", app_source)
 
     def test_batch_launcher_keeps_devtools_manual(self):
         root = Path(__file__).resolve().parents[1]

@@ -102,6 +102,7 @@ window.localeData["zh-CN"] = {
   "section.budget.title": "价格转 Token",
   "section.budget.subtitle": "按预算估算可使用的总 Token",
   "scenario.hint": "勾选共享后，该字段将应用到所有条目；取消勾选后可为每一条单独设置。",
+  "scenario.emptyAdd": "单击此处创建一个新条目",
   "footer.note": "注：缓存命中视为输入的一部分。模型价格、汇率和开支倍率均由你控制；计算结果仅包含模型 Token 费用，不含工具调用、税费及其他服务费用。",
   "footer.storage": "本地计算器 / 状态保存在 token-cost-calc.json",
   "dialog.deleteModelTitle": "删除模型？",
