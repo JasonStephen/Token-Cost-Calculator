@@ -6,7 +6,7 @@
   <title>Token Cost Calc</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="app-booting">
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="Main navigation" data-i18n-aria-label="sidebar.navigation">
         <div class="sidebar-body">
@@ -159,6 +159,131 @@
     </div>
   </div>
 
+  <section class="onboarding-dialog" id="onboardingDialog" aria-labelledby="onboardingTitle" aria-describedby="onboardingDescription" data-onboarding-dialog hidden>
+    <div class="onboarding-panel">
+      <header class="onboarding-header">
+        <div>
+          <p class="onboarding-kicker" data-i18n="onboarding.kicker">Welcome to Token Cost Calc</p>
+          <h2 id="onboardingTitle" data-i18n="onboarding.title">Make this workspace yours</h2>
+        </div>
+        <p class="onboarding-progress" id="onboardingProgressText" data-onboarding-progress aria-live="polite"><span data-i18n="onboarding.step">Step</span> <span data-onboarding-current-step>1</span> / <span data-onboarding-total-steps>6</span></p>
+      </header>
+
+      <ol class="onboarding-stepper" aria-label="Onboarding progress" data-i18n-aria-label="onboarding.progressLabel">
+        <li class="is-active" data-onboarding-progress-step="language" aria-current="step"><span>1</span><small data-i18n="onboarding.steps.language">Language</small></li>
+        <li data-onboarding-progress-step="currency"><span>2</span><small data-i18n="onboarding.steps.currency">Currency</small></li>
+        <li data-onboarding-progress-step="theme"><span>3</span><small data-i18n="onboarding.steps.theme">Theme</small></li>
+        <li data-onboarding-progress-step="providers"><span>4</span><small data-i18n="onboarding.steps.providers">Providers</small></li>
+        <li data-onboarding-progress-step="data"><span>5</span><small data-i18n="onboarding.steps.data">Data</small></li>
+        <li data-onboarding-progress-step="confirm"><span>6</span><small data-i18n="onboarding.steps.confirm">Ready</small></li>
+      </ol>
+
+      <form class="onboarding-form" id="onboardingForm" data-onboarding-form novalidate>
+        <section class="onboarding-step is-active" id="onboardingStepLanguage" data-onboarding-step="language" data-onboarding-step-index="1" aria-labelledby="onboardingLanguageTitle">
+          <div class="onboarding-hello-wall" aria-hidden="true"><span>Hello</span><span>你好</span><span>Hola</span><span>Bonjour</span><span>こんにちは</span><span>안녕하세요</span></div>
+          <div class="onboarding-step-content onboarding-language-content">
+            <p class="onboarding-eyebrow" data-i18n="onboarding.language.eyebrow">First, a familiar language</p>
+            <h3 id="onboardingLanguageTitle" data-i18n="onboarding.language.title">How would you like to read Token Cost Calc?</h3>
+            <p id="onboardingDescription" class="onboarding-copy" data-i18n="onboarding.language.description">You can change this later in Settings.</p>
+            <fieldset class="onboarding-choice-grid onboarding-language-grid" id="onboardingLanguage" aria-label="Choose language" data-i18n-aria-label="onboarding.language.fieldLabel">
+              <legend class="visually-hidden" data-i18n="onboarding.language.fieldLabel">Choose language</legend>
+              <input id="onboardingLanguageZhCN" name="onboardingLanguage" type="radio" value="zh-CN" checked data-onboarding-preference="language">
+              <label for="onboardingLanguageZhCN"><strong>简体中文</strong><small data-i18n="language.zhCN">Simplified Chinese</small></label>
+              <input id="onboardingLanguageZhTW" name="onboardingLanguage" type="radio" value="zh-TW" data-onboarding-preference="language">
+              <label for="onboardingLanguageZhTW"><strong>繁體中文</strong><small data-i18n="language.zhTW">Traditional Chinese</small></label>
+              <input id="onboardingLanguageEn" name="onboardingLanguage" type="radio" value="en" data-onboarding-preference="language">
+              <label for="onboardingLanguageEn"><strong>English</strong><small data-i18n="language.en">English</small></label>
+            </fieldset>
+          </div>
+          <div class="onboarding-actions" data-onboarding-navigation><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="currency"><span data-i18n="onboarding.next">Next</span><span aria-hidden="true">→</span></button></div>
+        </section>
+
+        <section class="onboarding-step" id="onboardingStepCurrency" data-onboarding-step="currency" data-onboarding-step-index="2" aria-labelledby="onboardingCurrencyTitle" hidden>
+          <div class="onboarding-step-content">
+            <p class="onboarding-eyebrow" data-i18n="onboarding.currency.eyebrow">Your default view</p>
+            <h3 id="onboardingCurrencyTitle" data-i18n="onboarding.currency.title">Which currency should costs use?</h3>
+            <p class="onboarding-copy" data-i18n="onboarding.currency.description">Amounts will still show a reference value when useful.</p>
+            <fieldset class="onboarding-choice-grid onboarding-currency-grid" id="onboardingCurrency" aria-label="Choose currency" data-i18n-aria-label="onboarding.currency.fieldLabel">
+              <legend class="visually-hidden" data-i18n="onboarding.currency.fieldLabel">Choose currency</legend>
+              <input id="onboardingCurrencyUSD" name="onboardingCurrency" type="radio" value="USD" checked data-onboarding-preference="currency">
+              <label for="onboardingCurrencyUSD"><span class="onboarding-currency-symbol" aria-hidden="true">$</span><span><strong>USD</strong><small data-i18n="onboarding.currency.usd">US dollar</small></span></label>
+              <input id="onboardingCurrencyCNY" name="onboardingCurrency" type="radio" value="CNY" data-onboarding-preference="currency">
+              <label for="onboardingCurrencyCNY"><span class="onboarding-currency-symbol" aria-hidden="true">¥</span><span><strong>CNY</strong><small data-i18n="onboarding.currency.cny">Chinese yuan</small></span></label>
+            </fieldset>
+          </div>
+          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="language"><span aria-hidden="true">←</span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="theme"><span data-i18n="onboarding.next">Next</span><span aria-hidden="true">→</span></button></div>
+        </section>
+
+        <section class="onboarding-step" id="onboardingStepTheme" data-onboarding-step="theme" data-onboarding-step-index="3" aria-labelledby="onboardingThemeTitle" hidden>
+          <div class="onboarding-step-content">
+            <p class="onboarding-eyebrow" data-i18n="onboarding.theme.eyebrow">Preview as you choose</p>
+            <h3 id="onboardingThemeTitle" data-i18n="onboarding.theme.title">Adjust it to suit you best</h3>
+            <p class="onboarding-copy" data-i18n="onboarding.theme.description">Choose a look for this workspace. Your selection can be previewed immediately.</p>
+            <fieldset class="onboarding-theme-grid" id="onboardingTheme" aria-label="Choose theme" data-i18n-aria-label="onboarding.theme.fieldLabel">
+              <legend class="visually-hidden" data-i18n="onboarding.theme.fieldLabel">Choose theme</legend>
+              <input id="onboardingThemeSystem" name="onboardingTheme" type="radio" value="system" checked data-onboarding-preference="theme" data-onboarding-theme-preview="system">
+              <label for="onboardingThemeSystem" class="onboarding-theme-card"><span class="onboarding-theme-preview is-system" aria-hidden="true"><i></i><b></b><em></em></span><strong data-i18n="theme.system">Use system setting</strong></label>
+              <input id="onboardingThemeLight" name="onboardingTheme" type="radio" value="light" data-onboarding-preference="theme" data-onboarding-theme-preview="light">
+              <label for="onboardingThemeLight" class="onboarding-theme-card"><span class="onboarding-theme-preview is-light" aria-hidden="true"><i></i><b></b><em></em></span><strong data-i18n="theme.light">Light</strong></label>
+              <input id="onboardingThemeDark" name="onboardingTheme" type="radio" value="dark" data-onboarding-preference="theme" data-onboarding-theme-preview="dark">
+              <label for="onboardingThemeDark" class="onboarding-theme-card"><span class="onboarding-theme-preview is-dark" aria-hidden="true"><i></i><b></b><em></em></span><strong data-i18n="theme.dark">Dark</strong></label>
+            </fieldset>
+          </div>
+          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="currency"><span aria-hidden="true">←</span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="providers"><span data-i18n="onboarding.next">Next</span><span aria-hidden="true">→</span></button></div>
+        </section>
+
+        <section class="onboarding-step" id="onboardingStepProviders" data-onboarding-step="providers" data-onboarding-step-index="4" aria-labelledby="onboardingProvidersTitle" hidden>
+          <div class="onboarding-step-content">
+            <p class="onboarding-eyebrow" data-i18n="onboarding.providers.eyebrow">Start with the names you use</p>
+            <h3 id="onboardingProvidersTitle" data-i18n="onboarding.providers.title">Choose your usual providers</h3>
+            <p class="onboarding-copy" data-i18n="onboarding.providers.description">Select any number. You can update this list whenever you need.</p>
+            <fieldset class="onboarding-provider-grid" aria-label="Choose providers" data-i18n-aria-label="onboarding.providers.fieldLabel">
+              <legend class="visually-hidden" data-i18n="onboarding.providers.fieldLabel">Choose providers</legend>
+              <label><input type="checkbox" name="onboardingProviders" value="openai" data-onboarding-provider="openai"><img class="onboarding-provider-icon" src="icons/brands/openai.svg" alt="" aria-hidden="true"><span>OpenAI</span></label>
+              <label><input type="checkbox" name="onboardingProviders" value="anthropic" data-onboarding-provider="anthropic"><img class="onboarding-provider-icon" src="icons/brands/anthropic.svg" alt="" aria-hidden="true"><span>Anthropic</span></label>
+              <label><input type="checkbox" name="onboardingProviders" value="gemini" data-onboarding-provider="gemini"><img class="onboarding-provider-icon" src="icons/brands/gemini.svg" alt="" aria-hidden="true"><span>Gemini</span></label>
+              <label><input type="checkbox" name="onboardingProviders" value="deepseek" data-onboarding-provider="deepseek"><img class="onboarding-provider-icon" src="icons/brands/deepseek.svg" alt="" aria-hidden="true"><span>DeepSeek</span></label>
+              <label><input type="checkbox" name="onboardingProviders" value="dashscope" data-onboarding-provider="dashscope"><img class="onboarding-provider-icon" src="icons/brands/dashscope.svg" alt="" aria-hidden="true"><span>DashScope</span></label>
+              <label><input type="checkbox" name="onboardingProviders" value="moonshot" data-onboarding-provider="moonshot"><img class="onboarding-provider-icon" src="icons/brands/moonshot.svg" alt="" aria-hidden="true"><span>Moonshot / Kimi</span></label>
+              <label><input type="checkbox" name="onboardingProviders" value="zai" data-onboarding-provider="zai"><img class="onboarding-provider-icon" src="icons/brands/zhipu.svg" alt="" aria-hidden="true"><span>Z.AI / GLM</span></label>
+              <label><input type="checkbox" name="onboardingProviders" value="xai" data-onboarding-provider="xai"><img class="onboarding-provider-icon" src="icons/brands/xai.svg" alt="" aria-hidden="true"><span>xAI</span></label>
+              <label><input type="checkbox" name="onboardingProviders" value="minimax" data-onboarding-provider="minimax"><img class="onboarding-provider-icon" src="icons/brands/minimax.svg" alt="" aria-hidden="true"><span>MiniMax</span></label>
+              <label><input type="checkbox" name="onboardingProviders" value="meta" data-onboarding-provider="meta"><img class="onboarding-provider-icon" src="icons/brands/meta.svg" alt="" aria-hidden="true"><span>Meta</span></label>
+            </fieldset>
+            <p class="onboarding-provider-summary" data-onboarding-model-count aria-live="polite">0 recommended models will be added.</p>
+          </div>
+          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="theme"><span aria-hidden="true">←</span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="data"><span data-i18n="onboarding.next">Next</span><span aria-hidden="true">→</span></button></div>
+        </section>
+
+        <section class="onboarding-step" id="onboardingStepData" data-onboarding-step="data" data-onboarding-step-index="5" aria-labelledby="onboardingDataTitle" hidden>
+          <div class="onboarding-step-content">
+            <p class="onboarding-eyebrow" data-i18n="onboarding.data.eyebrow">Choose how the catalog behaves</p>
+            <h3 id="onboardingDataTitle" data-i18n="onboarding.data.title">Data preferences</h3>
+            <p class="onboarding-copy" data-i18n="onboarding.data.description">These settings affect how the provider and pricing catalog is kept up to date.</p>
+            <fieldset class="onboarding-preference-list" aria-label="Data preferences" data-i18n-aria-label="onboarding.data.fieldLabel">
+              <legend class="visually-hidden" data-i18n="onboarding.data.fieldLabel">Data preferences</legend>
+              <label class="onboarding-switch-field"><input id="onboardingOnlineSync" type="checkbox" checked data-onboarding-preference="sync-catalog" data-onboarding-controls="onboardingFullCatalog"><span><strong data-i18n="onboarding.data.syncTitle">Sync the model and price catalog online</strong><small data-i18n="onboarding.data.syncDescription">Use an internet connection to refresh available models and prices.</small></span></label>
+              <label class="onboarding-switch-field"><input id="onboardingFullCatalog" type="checkbox" data-onboarding-preference="show-all-providers" data-onboarding-requires="sync-catalog" aria-describedby="onboardingShowAllProvidersHint"><span><strong data-i18n="onboarding.data.providersTitle">Show the full provider list</strong><small data-i18n="onboarding.data.providersDescription">Reveal providers beyond your usual selections.</small></span></label>
+              <p class="onboarding-dependency-hint" id="onboardingShowAllProvidersHint" data-onboarding-dependency-hint="sync-catalog"><span aria-hidden="true">!</span><span data-i18n="onboarding.data.providersHint">This option becomes available after online catalog sync is enabled.</span></p>
+            </fieldset>
+          </div>
+          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="providers"><span aria-hidden="true">←</span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="confirm"><span data-i18n="onboarding.next">Next</span><span aria-hidden="true">→</span></button></div>
+        </section>
+
+        <section class="onboarding-step" id="onboardingStepConfirm" data-onboarding-step="confirm" data-onboarding-step-index="6" aria-labelledby="onboardingConfirmTitle" hidden>
+          <div class="onboarding-step-content onboarding-confirm-content">
+            <div class="onboarding-complete-mark" aria-hidden="true">✓</div>
+            <p class="onboarding-eyebrow" data-i18n="onboarding.confirm.eyebrow">All set</p>
+            <h3 id="onboardingConfirmTitle" data-i18n="onboarding.confirm.title">Ready when you are</h3>
+            <p class="onboarding-copy" data-i18n="onboarding.confirm.description">Your choices are saved locally and can be adjusted any time in Settings.</p>
+          </div>
+          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="data"><span aria-hidden="true">←</span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn onboarding-start-btn" id="onboardingStart" type="button" data-onboarding-action="finish" data-onboarding-complete><span data-i18n="onboarding.start">Start using Token Cost Calc</span><span aria-hidden="true">→</span></button></div>
+        </section>
+      </form>
+    </div>
+  </section>
+
+  <dialog class="confirm-dialog" id="onboardingSkipProvidersDialog" aria-labelledby="onboardingSkipProvidersTitle"><form method="dialog"><h3 id="onboardingSkipProvidersTitle" data-i18n="onboarding.skipProviders.title">Skip recommended models?</h3><p data-i18n="onboarding.skipProviders.description">Selecting providers adds their recommended models. Are you sure you want to skip this?</p><p data-i18n="onboarding.skipProviders.note">You can add more models later in Settings &gt; Model management.</p><div class="confirm-dialog-actions"><button class="text-btn" value="cancel" data-i18n="action.cancel">Cancel</button><button class="add-btn" id="onboardingSkipProvidersConfirm" type="button" data-i18n="onboarding.skipProviders.confirm">Skip for now</button></div></form></dialog>
   <dialog class="confirm-dialog" id="modelDeleteDialog" aria-labelledby="modelDeleteTitle"><form method="dialog"><h3 id="modelDeleteTitle" data-i18n="dialog.deleteModelTitle">Delete model?</h3><p><span data-i18n="dialog.deleteModelPrefix">Delete</span> <strong id="modelDeleteName"></strong> <span data-i18n="dialog.deleteModelSuffix">and its selections.</span></p><div class="confirm-dialog-actions"><button class="text-btn" value="cancel" data-i18n="action.cancel">Cancel</button><button class="danger-btn" id="confirmModelDelete" type="button" data-i18n="action.deleteModel">Delete model</button></div></form></dialog>
   <dialog class="confirm-dialog" id="resetConfirmDialog" aria-labelledby="resetConfirmTitle"><form method="dialog"><h3 id="resetConfirmTitle" data-i18n="resetDialog.title">Reset application?</h3><p data-i18n="resetDialog.description">This removes locally saved preferences, models, and custom prices.</p><div class="confirm-dialog-actions"><button class="text-btn" value="cancel" data-i18n="action.cancel">Cancel</button><button class="danger-btn" id="resetConfirmProceed" type="button" data-i18n="resetDialog.continue">Continue</button></div></form></dialog>
   <dialog class="confirm-dialog" id="resetTextDialog" aria-labelledby="resetTextTitle"><form method="dialog"><h3 id="resetTextTitle" data-i18n="resetDialog.confirmTitle">Confirm reset</h3><p><span data-i18n="resetDialog.confirmDescription">Enter</span> <strong>RESET</strong> <span data-i18n="resetDialog.confirmSuffix">to restore the application defaults.</span></p><label class="reset-confirm-input"><span class="visually-hidden" data-i18n="resetDialog.inputLabel">Confirmation text</span><input id="resetConfirmInput" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="resetDialog.inputPlaceholder" placeholder="Type RESET"></label><p class="reset-dialog-error" id="resetDialogError" role="alert" hidden></p><div class="confirm-dialog-actions"><button class="text-btn" value="cancel" data-i18n="action.cancel">Cancel</button><button class="danger-btn" id="resetConfirmExecute" type="button" disabled data-i18n="resetDialog.execute">Reset application</button></div></form></dialog>

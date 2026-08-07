@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 import urllib.error
 
-from backend.pricing_catalog import fetch_pricing_models, reduce_catalog
+from backend.pricing_catalog import bundled_fallback_models, fetch_pricing_models, reduce_catalog
 
 
 class PricingCatalogTests(unittest.TestCase):
@@ -216,7 +216,7 @@ class PricingCatalogTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         config = json.loads((root / "config" / "pricing_catalog.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(set(config["providers"]), {"openai", "anthropic", "gemini", "deepseek", "moonshot", "zai", "meta", "mistral", "minimax", "xai"})
+        self.assertEqual(set(config["providers"]), {"openai", "anthropic", "gemini", "deepseek", "dashscope", "moonshot", "zai", "meta", "mistral", "minimax", "xai"})
         for provider in config["providers"].values():
             icon = provider["icon"]
             self.assertTrue(icon.startswith("icons/brands/"), icon)
@@ -307,6 +307,82 @@ class PricingCatalogTests(unittest.TestCase):
 
         self.assertTrue(config["filters"]["allModels"])
         self.assertNotIn("excludeModels", config["filters"])
+
+    def test_onboarding_snapshot_has_the_ten_default_providers(self):
+        root = Path(__file__).resolve().parents[1]
+        config = json.loads((root / "config" / "pricing_catalog.json").read_text(encoding="utf-8"))
+        expected_providers = [
+            "openai",
+            "anthropic",
+            "gemini",
+            "deepseek",
+            "dashscope",
+            "moonshot",
+            "zai",
+            "xai",
+            "minimax",
+            "meta",
+        ]
+        onboarding = config["onboarding"]
+        snapshot = config["fallbackSnapshot"]
+        recommended = onboarding["recommendedModelsByProvider"]
+        fallback_models = config["fallbackModels"]
+
+        self.assertEqual(config["providerWhitelist"], expected_providers)
+        self.assertEqual(onboarding["defaultProviderIds"], expected_providers)
+        self.assertEqual(list(recommended), expected_providers)
+        self.assertEqual(onboarding["schemaVersion"], 1)
+        self.assertEqual(snapshot["schemaVersion"], 1)
+        self.assertEqual(snapshot["version"], "2026-08-07")
+        self.assertEqual(snapshot["asOf"], "2026-08-07")
+        self.assertEqual(snapshot["currency"], "USD")
+        self.assertEqual(snapshot["priceUnit"], "USD per 1M tokens")
+
+        recommended_ids = [model_id for models in recommended.values() for model_id in models]
+        self.assertEqual(len(recommended_ids), 27)
+        self.assertEqual(len(recommended_ids), len(set(recommended_ids)))
+        self.assertEqual(snapshot["modelCount"], len(recommended_ids))
+        self.assertEqual(
+            {model["sourceModelId"] for model in fallback_models},
+            set(recommended_ids),
+        )
+        self.assertEqual({model["providerId"] for model in fallback_models}, set(expected_providers))
+        self.assertNotIn("mistral", {model["providerId"] for model in fallback_models})
+        self.assertIn("mistral", config["providers"])
+        self.assertEqual(recommended["dashscope"], ["dashscope/qwen3.7-max"])
+        dashscope = next(model for model in fallback_models if model["sourceModelId"] == "dashscope/qwen3.7-max")
+        self.assertEqual((dashscope["cache"], dashscope["input"], dashscope["output"]), (0.5, 2.5, 7.5))
+        html_source = (root / "web" / "index.html").read_text(encoding="utf-8")
+        app_source = (root / "web" / "app.js").read_text(encoding="utf-8")
+        self.assertIn('data-onboarding-provider="dashscope"', html_source)
+        self.assertIn("const ONBOARDING_PROVIDER_LIMIT = 10", app_source)
+        self.assertIn("meta/muse-spark-1.1", recommended["meta"])
+
+        excluded_personal_state = {
+            "enabled",
+            "multiplier",
+            "fxRate",
+            "comparisonRatio",
+            "comparisonHit",
+            "comparisonTotal",
+            "targetId",
+        }
+        for model in fallback_models:
+            self.assertFalse(excluded_personal_state & set(model), model)
+            self.assertTrue(model["id"])
+            self.assertTrue(model["name"])
+            self.assertTrue(model["provider"])
+            for field in ("cache", "input", "output"):
+                self.assertIsInstance(model[field], (int, float))
+                self.assertGreaterEqual(model[field], 0)
+
+        offline_models = bundled_fallback_models(config)
+        self.assertEqual(
+            {model["sourceModelId"] for model in offline_models},
+            set(recommended_ids),
+        )
+        self.assertTrue(all(model["source"] == "litellm" for model in offline_models))
+        self.assertTrue(all(model["enabled"] is False for model in offline_models))
 
     def test_custom_category_overrides_provider_category(self):
         models = reduce_catalog(

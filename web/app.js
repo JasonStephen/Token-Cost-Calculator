@@ -7,6 +7,13 @@
     const VIEW_IDS = ['home', 'structure', 'comparison', 'tokenCost', 'budget', 'settings'];
     const THEME_IDS = ['system', 'light', 'dark'];
     const SETTINGS_MODEL_PAGE_SIZES = [12, 24];
+    // Keep the onboarding contract in the persisted state.  This is deliberately
+    // separate from stateVersion: existing workspaces should not be treated as a
+    // fresh install just because the calculator state gains a new migration.
+    const ONBOARDING_VERSION = 1;
+    const ONBOARDING_RESET_SESSION_KEY = 'token-cost-calc-onboarding-after-reset';
+    const ONBOARDING_PROVIDER_LIMIT = 10;
+    const MAX_CALCULATOR_MODELS = 3;
     let settingsModelPageSize = SETTINGS_MODEL_PAGE_SIZES[0];
     let settingsModelPage = 1;
     let settingsModelSearchQuery = '';
@@ -18,6 +25,11 @@
     let modelSelectionDraft = new Set();
     let modelSelectionProvider = '';
     let modelSelectionPanel = 'select';
+    let onboardingStep = 0;
+    let onboardingSubmitting = false;
+    let onboardingTransitioning = false;
+    let onboardingClosing = false;
+    let onboardingSkipProvidersConfirmed = false;
     const systemTheme = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
     function uiText(key, fallback, fallbackCjk=fallback) {
@@ -400,16 +412,24 @@
       const comparisonSelectedModelIds = Array.isArray(saved.comparisonSelectedModelIds)
         ? [...new Set(saved.comparisonSelectedModelIds.map(resolveModelId).filter(id => id && models.some(model => model.id === id && modelEnabled(model))))]
         : models.filter(modelEnabled).map(model => model.id);
-      const activeView = 'home';
-      const theme = THEME_IDS.includes(saved.theme) ? saved.theme : 'system';
-      return {
-        ...DEFAULT, ...saved, models, comparisonConfig, tokenConfig, budgetConfig, activeView, theme,
+       const activeView = 'home';
+       const theme = THEME_IDS.includes(saved.theme) ? saved.theme : 'system';
+       const onboardingProviders = Array.isArray(saved.onboardingProviders)
+         ? [...new Set(saved.onboardingProviders.map(normalizedProvider).filter(Boolean))]
+         : [];
+       return {
+         ...DEFAULT, ...saved, models, comparisonConfig, tokenConfig, budgetConfig, activeView, theme,
         structureUnit:normalizeTokenUnit(saved.structureUnit, normalizeTokenUnit(DEFAULT.structureUnit)),
         comparisonUnit:normalizeTokenUnit(saved.comparisonUnit, normalizeTokenUnit(DEFAULT.comparisonUnit)),
         tokenUnit:normalizeTokenUnit(saved.tokenUnit, normalizeTokenUnit(DEFAULT.tokenUnit)),
         budgetUnit:normalizeTokenUnit(saved.budgetUnit, normalizeTokenUnit(DEFAULT.budgetUnit)),
-        sidebarCollapsed:Boolean(saved.sidebarCollapsed), showHostedModels:Boolean(saved.showHostedModels), settingsSection:['general', 'models', 'about', 'reset'].includes(saved.settingsSection) ? saved.settingsSection : 'general', stateVersion:10,
-        tokenRows:normalizeRows(saved.tokenRows, 'tokenRows', tokenConfig),
+         sidebarCollapsed:Boolean(saved.sidebarCollapsed), showHostedModels:Boolean(saved.showHostedModels), settingsSection:['general', 'models', 'about', 'reset'].includes(saved.settingsSection) ? saved.settingsSection : 'general', stateVersion:10,
+         onboardingVersion:Number.isFinite(Number(saved.onboardingVersion)) ? Number(saved.onboardingVersion) : 0,
+         onboardingStatus:saved.onboardingStatus === 'complete' ? 'complete' : 'pending',
+         onboardingProviders,
+         onboardingOnlineSync:typeof saved.onboardingOnlineSync === 'boolean' ? saved.onboardingOnlineSync : true,
+         onboardingFullCatalog:typeof saved.onboardingFullCatalog === 'boolean' ? saved.onboardingFullCatalog : Boolean(saved.showHostedModels),
+         tokenRows:normalizeRows(saved.tokenRows, 'tokenRows', tokenConfig),
         budgetRows:normalizeRows(saved.budgetRows, 'budgetRows', budgetConfig),
         comparisonSelectedModelIds,
         tokenSelectedModelIds:selectionFor('tokenSelectedModelIds'),
@@ -422,12 +442,15 @@
     }
     let state;
     let saveTimer;
+    let isResetting = false;
     let pendingModelId = null;
     let pendingModelConfigId = null;
     function userAddedModel(model) { return Boolean(model && model.source === 'manual'); }
     function save() {
+      if (isResetting) return;
       clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
+        if (isResetting) return;
         if (window.pywebview && window.pywebview.api) window.pywebview.api.save_state(state).catch(() => {});
       }, 180);
     }
@@ -524,6 +547,578 @@
       document.documentElement.dataset.themePreference = theme;
       const select = $('theme');
       if (select) select.value = theme;
+    }
+
+    // Onboarding is intentionally self-contained.  The application can still be
+    // embedded with an older index.html while the onboarding markup is rolling
+    // out, so every DOM access in this section is optional.
+    function onboardingRoot() {
+      return $('onboardingDialog') || $('onboarding') ||
+        document.querySelector('[data-onboarding-dialog], [data-onboarding-root], dialog[data-onboarding]');
+    }
+    function onboardingControl(name) {
+      const root = onboardingRoot();
+      const pascal = name.charAt(0).toUpperCase() + name.slice(1);
+      return $('onboarding' + pascal) ||
+        root?.querySelector('[data-onboarding-' + name + '], [data-onboarding-setting="' + name + '"]') || null;
+    }
+    function onboardingChoiceValue(control, fallback='') {
+      if (!control) return fallback;
+      if (control.matches?.('input[type="radio"]')) return control.checked ? control.value : fallback;
+      const radio = control.querySelector?.('input[type="radio"]:checked');
+      if (radio) return radio.value;
+      return control.value == null ? fallback : control.value;
+    }
+    function setOnboardingChoice(control, value) {
+      if (!control) return;
+      const radios = control.matches?.('input[type="radio"]') ? [control] : [...(control.querySelectorAll?.('input[type="radio"]') || [])];
+      if (radios.length) {
+        radios.forEach(input => { input.checked = String(input.value) === String(value); });
+      } else if ('value' in control) {
+        control.value = value;
+      }
+    }
+    function onboardingChecked(control, fallback=false) {
+      if (!control) return fallback;
+      if (control.matches?.('input[type="checkbox"]')) return control.checked;
+      const input = control.querySelector?.('input[type="checkbox"]');
+      return input ? input.checked : Boolean(control.checked);
+    }
+    function setOnboardingChecked(control, value) {
+      const input = control?.matches?.('input[type="checkbox"]') ? control : control?.querySelector?.('input[type="checkbox"]');
+      if (input) input.checked = Boolean(value);
+    }
+    function canonicalOnboardingProvider(value) {
+      const candidate = normalizedProvider(value);
+      const providers = PRICING_CONFIG && PRICING_CONFIG.providers && typeof PRICING_CONFIG.providers === 'object'
+        ? PRICING_CONFIG.providers : {};
+      for (const [id, details] of Object.entries(providers)) {
+        if (candidate === normalizedProvider(id) || candidate === normalizedProvider(details && details.name)) return normalizedProvider(id);
+      }
+      return candidate;
+    }
+    function configuredOnboardingValue(names) {
+      const roots = [
+        PRICING_CONFIG && PRICING_CONFIG.onboarding,
+        PRICING_CONFIG && PRICING_CONFIG.setup,
+        PRICING_CONFIG,
+        DEFAULT && DEFAULT.onboarding,
+        DEFAULT
+      ].filter(value => value && typeof value === 'object');
+      for (const root of roots) {
+        for (const name of names) {
+          if (root[name] != null) return root[name];
+        }
+      }
+      return null;
+    }
+    function collectOnboardingRecommendations(value, inheritedProvider='', output=[], visited=new Set()) {
+      if (value == null) return output;
+      if (typeof value === 'string' || typeof value === 'number') {
+        output.push({providerId:canonicalOnboardingProvider(inheritedProvider), ids:[String(value)], model:null});
+        return output;
+      }
+      if (Array.isArray(value)) {
+        value.forEach(item => collectOnboardingRecommendations(item, inheritedProvider, output, visited));
+        return output;
+      }
+      if (typeof value !== 'object' || visited.has(value)) return output;
+      visited.add(value);
+      const providerId = canonicalOnboardingProvider(value.providerId || value.provider || value.vendor || value.providerKey || inheritedProvider);
+      const containers = ['models', 'recommendedModels', 'recommendations', 'modelRecommendations', 'items', 'defaults']
+        .filter(key => value[key] != null);
+      const ids = [value.sourceModelId, value.modelId, value.model, value.targetId, value.id, value.name]
+        .filter(item => typeof item === 'string' || typeof item === 'number').map(String);
+      const isModel = ids.length > 0 && (containers.length === 0 || value.sourceModelId || value.modelId || value.model || value.targetId || hasPrice(value));
+      if (isModel) output.push({providerId, ids, model:hasPrice(value) ? value : null});
+      containers.forEach(key => collectOnboardingRecommendations(value[key], providerId, output, visited));
+      if (!isModel && !containers.length) {
+        Object.entries(value).forEach(([key, item]) => {
+          if (!['providerId', 'provider', 'vendor', 'providerKey', 'name', 'id'].includes(key)) {
+            collectOnboardingRecommendations(item, providerId || canonicalOnboardingProvider(key), output, visited);
+          }
+        });
+      }
+      return output;
+    }
+    function onboardingRecommendationDescriptors() {
+      const candidates = [
+        configuredOnboardingValue(['recommendedModelsByProvider']),
+        configuredOnboardingValue(['recommendedModels']),
+        configuredOnboardingValue(['recommendations']),
+        configuredOnboardingValue(['modelRecommendations']),
+        configuredOnboardingValue(['recommended'])
+      ].filter(value => value != null);
+      const descriptors = [];
+      candidates.forEach(value => collectOnboardingRecommendations(value, '', descriptors));
+      if (descriptors.length) return descriptors;
+      const fallback = PRICING_CONFIG && Array.isArray(PRICING_CONFIG.fallbackModels) ? PRICING_CONFIG.fallbackModels : (DEFAULT?.models || []);
+      fallback.forEach(model => {
+        if (!model || typeof model !== 'object') return;
+        descriptors.push({
+          providerId:canonicalOnboardingProvider(model.providerId || model.provider),
+          ids:[model.sourceModelId, model.targetId, model.id, model.name].filter(Boolean).map(String),
+          model
+        });
+      });
+      return descriptors;
+    }
+    function collectOnboardingSnapshots(value, output=[], visited=new Set()) {
+      if (value == null) return output;
+      if (Array.isArray(value)) {
+        value.forEach(item => collectOnboardingSnapshots(item, output, visited));
+        return output;
+      }
+      if (typeof value !== 'object' || visited.has(value)) return output;
+      visited.add(value);
+      if (hasPrice(value) && (value.sourceModelId || value.modelId || value.id || value.name)) output.push(value);
+      ['models', 'fallbackModels', 'snapshots', 'recommendedModels', 'recommendations', 'modelRecommendations', 'items']
+        .forEach(key => { if (value[key] != null) collectOnboardingSnapshots(value[key], output, visited); });
+      return output;
+    }
+    function onboardingSnapshotModels() {
+      const snapshots = [];
+      const onboardingConfig = PRICING_CONFIG && PRICING_CONFIG.onboarding;
+      collectOnboardingSnapshots(onboardingConfig && onboardingConfig.fallbackModels, snapshots);
+      collectOnboardingSnapshots(onboardingConfig && onboardingConfig.snapshots, snapshots);
+      collectOnboardingSnapshots(PRICING_CONFIG && PRICING_CONFIG.fallbackModels, snapshots);
+      onboardingRecommendationDescriptors().forEach(descriptor => {
+        if (descriptor.model) snapshots.push(descriptor.model);
+      });
+      collectOnboardingSnapshots(DEFAULT?.models, snapshots);
+      const seen = new Set();
+      return snapshots.filter(model => {
+        const key = String(model.sourceModelId || model.modelId || model.id || model.name || '').trim().toLowerCase();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+    function onboardingProviderChoices() {
+      const fromConfig = configuredOnboardingValue(['providers', 'providerChoices', 'supportedProviders']);
+      const choices = [];
+      const add = (id, details={}) => {
+        const providerId = canonicalOnboardingProvider(id || details.providerId || details.provider);
+        if (!providerId || choices.some(choice => choice.id === providerId) || choices.length >= ONBOARDING_PROVIDER_LIMIT) return;
+        const providers = PRICING_CONFIG && PRICING_CONFIG.providers && typeof PRICING_CONFIG.providers === 'object' ? PRICING_CONFIG.providers : {};
+        const meta = providers[providerId] || {};
+        choices.push({id:providerId, label:String(details.name || details.label || meta.name || id || providerId)});
+      };
+      if (Array.isArray(fromConfig)) {
+        fromConfig.forEach(item => add(typeof item === 'object' ? (item.id || item.providerId || item.provider) : item, typeof item === 'object' ? item : {}));
+      } else if (fromConfig && typeof fromConfig === 'object') {
+        Object.entries(fromConfig).forEach(([id, details]) => add(id, typeof details === 'object' ? details : {name:details}));
+      }
+      if (!choices.length) {
+        const whitelist = Array.isArray(PRICING_CONFIG && PRICING_CONFIG.providerWhitelist) ? PRICING_CONFIG.providerWhitelist : [];
+        whitelist.forEach(id => add(id));
+      }
+      if (!choices.length) onboardingRecommendationDescriptors().forEach(descriptor => add(descriptor.providerId));
+      return choices;
+    }
+    function onboardingProviderElements(root=onboardingRoot()) {
+      return root ? [...root.querySelectorAll('[data-onboarding-provider]')] : [];
+    }
+    function onboardingProviderId(element) {
+      return canonicalOnboardingProvider(element?.dataset?.onboardingProvider || element?.value || '');
+    }
+    function selectedOnboardingProviders(root=onboardingRoot()) {
+      const selected = onboardingProviderElements(root).filter(element => {
+        if (element.matches('input[type="checkbox"], input[type="radio"]')) return element.checked;
+        return element.classList.contains('is-selected') || element.getAttribute('aria-pressed') === 'true' || element.dataset.selected === 'true';
+      }).map(onboardingProviderId).filter(Boolean);
+      return [...new Set(selected)];
+    }
+    function setSelectedOnboardingProviders(providerIds, root=onboardingRoot()) {
+      const selected = new Set((providerIds || []).map(canonicalOnboardingProvider).filter(Boolean));
+      onboardingProviderElements(root).forEach(element => {
+        const active = selected.has(onboardingProviderId(element));
+        if (element.matches('input[type="checkbox"], input[type="radio"]')) element.checked = active;
+        element.classList.toggle('is-selected', active);
+        element.dataset.selected = String(active);
+        if (!element.matches('input')) element.setAttribute('aria-pressed', String(active));
+      });
+    }
+    function onboardingSelectedModelCount(providerIds=selectedOnboardingProviders()) {
+      const providers = new Set((providerIds || []).map(canonicalOnboardingProvider).filter(Boolean));
+      const descriptors = onboardingRecommendationDescriptors();
+      const seen = new Set();
+      return onboardingSnapshotModels().filter(model => {
+        if (!providers.has(canonicalOnboardingProvider(model.providerId || model.provider))) return false;
+        if (!modelIsOnboardingRecommendation(model, descriptors)) return false;
+        const key = String(model.sourceModelId || model.modelId || model.id || model.name || '').trim().toLowerCase();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).length;
+    }
+    function renderOnboardingProviderSummary(root=onboardingRoot()) {
+      const summary = root?.querySelector('[data-onboarding-model-count]');
+      if (!summary) return;
+      summary.textContent = t('onboarding.providers.modelCount', {count:onboardingSelectedModelCount()});
+    }
+    function renderOnboardingProviderChoices(root=onboardingRoot()) {
+      if (!root || onboardingProviderElements(root).length) return;
+      const target = $('onboardingProviderList') || $('onboardingProviders') || root.querySelector('[data-onboarding-provider-list]');
+      if (!target) return;
+      const selected = new Set(state?.onboardingProviders || []);
+      target.innerHTML = onboardingProviderChoices().map(choice => {
+        const checked = selected.has(choice.id) ? ' checked' : '';
+        return '<label class="onboarding-provider-option"><input type="checkbox" data-onboarding-provider="' + escapeHtml(choice.id) + '" value="' + escapeHtml(choice.id) + '"' + checked + '><span>' + escapeHtml(choice.label) + '</span></label>';
+      }).join('');
+    }
+    function onboardingModelIdentifiers(model) {
+      return new Set([model && model.sourceModelId, model && model.modelId, model && model.targetId, model && model.id, model && model.name]
+        .filter(Boolean).map(value => String(value).trim().toLowerCase()));
+    }
+    function modelIsOnboardingRecommendation(model, descriptors) {
+      const providerId = canonicalOnboardingProvider(model && (model.providerId || model.provider));
+      const identities = onboardingModelIdentifiers(model);
+      return descriptors.some(descriptor => {
+        if (descriptor.providerId && providerId !== descriptor.providerId) return false;
+        const ids = (descriptor.ids || []).map(value => String(value).trim().toLowerCase()).filter(Boolean);
+        return !ids.length || ids.some(id => identities.has(id));
+      });
+    }
+    function installOnboardingSnapshot() {
+      const snapshots = onboardingSnapshotModels();
+      if (snapshots.length) mergePricingModels(snapshots);
+    }
+    function applyOnboardingModelSelection() {
+      if (!state || !Array.isArray(state.models)) return [];
+      const providers = new Set((state.onboardingProviders || []).map(canonicalOnboardingProvider).filter(Boolean));
+      const descriptors = onboardingRecommendationDescriptors();
+      let selected = state.models.filter(model => providers.has(canonicalOnboardingProvider(model.providerId || model.provider)) && modelIsOnboardingRecommendation(model, descriptors));
+      // A malformed recommendation list should not leave the calculator with no
+      // models.  The local snapshot for a chosen provider is the safe fallback.
+      if (!selected.length) selected = state.models.filter(model => providers.has(canonicalOnboardingProvider(model.providerId || model.provider)) && hasPrice(model));
+      const selectedIds = new Set(selected.map(model => model.id));
+      state.models.forEach(model => { model.enabled = selectedIds.has(model.id); });
+      const defaultIds = selected.slice(0, MAX_CALCULATOR_MODELS).map(model => model.id);
+      state.comparisonSelectedModelIds = [...defaultIds];
+      state.tokenSelectedModelIds = [...defaultIds];
+      state.budgetSelectedModelIds = [...defaultIds];
+      return defaultIds;
+    }
+    function setOnboardingFeedback(message='', kind='') {
+      const root = onboardingRoot();
+      const feedback = $('onboardingError') || $('onboardingStatus') || root?.querySelector('[data-onboarding-error], [data-onboarding-status]');
+      if (!feedback) return;
+      feedback.textContent = message;
+      feedback.hidden = !message;
+      feedback.dataset.state = kind;
+    }
+    function onboardingMotionDuration(duration) {
+      return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : duration;
+    }
+    function renderOnboardingProgress(root, steps) {
+      const activeName = String(steps[onboardingStep].dataset.onboardingStep || '');
+      root.dataset.onboardingStep = String(onboardingStep + 1);
+      root.querySelectorAll('[data-onboarding-current-step]').forEach(node => { node.textContent = String(onboardingStep + 1); });
+      root.querySelectorAll('[data-onboarding-total-steps]').forEach(node => { node.textContent = String(steps.length); });
+      root.querySelectorAll('[data-onboarding-progress-step]').forEach(node => {
+        const active = node.dataset.onboardingProgressStep === activeName;
+        node.classList.toggle('is-active', active);
+        if (active) node.setAttribute('aria-current', 'step');
+        else node.removeAttribute('aria-current');
+      });
+      root.querySelectorAll('[data-onboarding-next], #onboardingNext').forEach(button => { button.hidden = onboardingStep >= steps.length - 1; });
+      root.querySelectorAll('[data-onboarding-complete], #onboardingComplete').forEach(button => { button.hidden = onboardingStep < steps.length - 1; });
+      root.querySelectorAll('[data-onboarding-prev], #onboardingPrev').forEach(button => { button.hidden = onboardingStep === 0; });
+    }
+    function renderOnboardingSteps() {
+      const root = onboardingRoot();
+      if (!root) return;
+      const steps = [...root.querySelectorAll('[data-onboarding-step]')];
+      if (!steps.length) return;
+      onboardingStep = Math.max(0, Math.min(onboardingStep, steps.length - 1));
+      steps.forEach((step, index) => {
+        const active = index === onboardingStep;
+        step.hidden = !active;
+        step.classList.toggle('is-active', active);
+        step.classList.remove('is-entering', 'is-exiting', 'is-forward', 'is-backward', 'is-animating');
+        step.setAttribute('aria-hidden', String(!active));
+      });
+      renderOnboardingProgress(root, steps);
+    }
+    function onboardingStepNaturalHeight(step) {
+      if (!step) return 0;
+      const wasHidden = step.hidden;
+      const previousStyle = step.getAttribute('style');
+      const previousAriaHidden = step.getAttribute('aria-hidden');
+      step.hidden = false;
+      step.setAttribute('aria-hidden', 'true');
+      step.classList.add('is-measuring');
+      const height = Math.ceil(step.getBoundingClientRect().height);
+      step.classList.remove('is-measuring');
+      if (previousStyle == null) step.removeAttribute('style');
+      else step.setAttribute('style', previousStyle);
+      if (previousAriaHidden == null) step.removeAttribute('aria-hidden');
+      else step.setAttribute('aria-hidden', previousAriaHidden);
+      step.hidden = wasHidden;
+      return height;
+    }
+    function stabilizeOnboardingFormHeight(root=onboardingRoot()) {
+      const form = root?.querySelector('.onboarding-form');
+      const steps = root ? [...root.querySelectorAll('[data-onboarding-step]')] : [];
+      if (!form || !steps.length) return;
+      form.style.removeProperty('--onboarding-step-height');
+      const height = Math.max(...steps.map(onboardingStepNaturalHeight));
+      if (height) form.style.setProperty('--onboarding-step-height', height + 'px');
+    }
+    function setOnboardingStep(target) {
+      const root = onboardingRoot();
+      const steps = root ? [...root.querySelectorAll('[data-onboarding-step]')] : [];
+      const index = typeof target === 'number'
+        ? target
+        : steps.findIndex(step => String(step.dataset.onboardingStep) === String(target));
+      if (index < 0 || !steps.length || onboardingTransitioning) return;
+      const nextStep = Math.max(0, Math.min(index, steps.length - 1));
+      if (nextStep === onboardingStep) return;
+      const previousStep = onboardingStep;
+      const outgoing = steps[previousStep];
+      const incoming = steps[nextStep];
+      const direction = nextStep > previousStep ? 'is-forward' : 'is-backward';
+      const form = root.querySelector('.onboarding-form');
+      const outgoingHeight = Math.ceil(outgoing.getBoundingClientRect().height);
+      const incomingHeight = onboardingStepNaturalHeight(incoming);
+      const transitionHeight = Math.max(outgoingHeight, incomingHeight);
+      onboardingTransitioning = true;
+      onboardingStep = nextStep;
+      if (form && transitionHeight) form.style.height = transitionHeight + 'px';
+      if (outgoingHeight) outgoing.style.height = outgoingHeight + 'px';
+      outgoing.classList.add('is-exiting', direction);
+      root.classList.add('is-step-transitioning');
+      window.requestAnimationFrame(() => {
+        outgoing.classList.add('is-animating');
+      });
+      window.setTimeout(() => {
+        outgoing.hidden = true;
+        outgoing.setAttribute('aria-hidden', 'true');
+        outgoing.classList.remove('is-active', 'is-exiting', direction, 'is-animating');
+        incoming.hidden = false;
+        incoming.setAttribute('aria-hidden', 'false');
+        incoming.classList.add('is-active', 'is-entering', direction);
+        renderOnboardingProgress(root, steps);
+        window.requestAnimationFrame(() => incoming.classList.add('is-animating'));
+        window.setTimeout(() => {
+          incoming.classList.remove('is-entering', direction, 'is-animating');
+          outgoing.style.height = '';
+          if (form) form.style.height = '';
+          root.classList.remove('is-step-transitioning');
+          onboardingTransitioning = false;
+        }, onboardingMotionDuration(320));
+      }, onboardingMotionDuration(280));
+    }
+    function syncOnboardingDataDependency(root=onboardingRoot()) {
+      if (!root) return;
+      const online = onboardingChecked(onboardingControl('onlineSync'), false);
+      const fullCatalog = onboardingControl('fullCatalog');
+      if (!online) setOnboardingChecked(fullCatalog, false);
+      const required = root.querySelectorAll('[data-onboarding-requires="sync-catalog"]');
+      required.forEach(node => {
+        const input = node.matches('input, select, button') ? node : node.querySelector('input, select, button');
+        if (input) input.disabled = !online;
+        node.closest('label')?.classList.toggle('is-disabled', !online);
+      });
+      root.querySelectorAll('[data-onboarding-dependency-hint="sync-catalog"]').forEach(node => { node.hidden = online; });
+    }
+    function applyOnboardingPreferences(render=true) {
+      if (!state) return;
+      const language = onboardingChoiceValue(onboardingControl('language'), state.language);
+      const currency = onboardingChoiceValue(onboardingControl('currency'), state.currency);
+      const theme = onboardingChoiceValue(onboardingControl('theme'), state.theme);
+      if (language) state.language = window.i18n.setLocale(language);
+      if (['USD', 'CNY'].includes(currency)) state.currency = currency;
+      if (THEME_IDS.includes(theme)) state.theme = theme;
+      state.onboardingOnlineSync = onboardingChecked(onboardingControl('onlineSync'), state.onboardingOnlineSync);
+      if (!state.onboardingOnlineSync) setOnboardingChecked(onboardingControl('fullCatalog'), false);
+      state.onboardingFullCatalog = state.onboardingOnlineSync && onboardingChecked(onboardingControl('fullCatalog'), state.onboardingFullCatalog);
+      state.showHostedModels = state.onboardingFullCatalog;
+      if ($('showHostedModels')) $('showHostedModels').checked = state.showHostedModels;
+      if ($('language')) $('language').value = state.language;
+      if ($('currency')) $('currency').value = state.currency;
+      applyTheme(state.theme);
+      if (window.i18n) window.i18n.translateDocument();
+      syncOnboardingDataDependency();
+      if (!render) return;
+      renderMobileViewTitle(state.activeView);
+      renderStructureUnit();
+      renderSettingsModelFilters();
+      update();
+    }
+    function hydrateOnboarding(root=onboardingRoot()) {
+      if (!root || !state) return;
+      renderOnboardingProviderChoices(root);
+      setOnboardingChoice(onboardingControl('language'), state.language);
+      setOnboardingChoice(onboardingControl('currency'), state.currency);
+      setOnboardingChoice(onboardingControl('theme'), state.theme);
+      setOnboardingChecked(onboardingControl('onlineSync'), state.onboardingOnlineSync);
+      setOnboardingChecked(onboardingControl('fullCatalog'), state.onboardingFullCatalog);
+      syncOnboardingDataDependency(root);
+      setSelectedOnboardingProviders(state.onboardingProviders, root);
+      renderOnboardingProviderSummary(root);
+      renderOnboardingSteps();
+    }
+    function playHomeEntrance() {
+      const home = document.querySelector('[data-view-section="home"]');
+      if (!home) return;
+      home.classList.remove('is-onboarding-entering');
+      void home.offsetWidth;
+      home.classList.add('is-onboarding-entering');
+      window.setTimeout(() => home.classList.remove('is-onboarding-entering'), onboardingMotionDuration(520));
+    }
+    function closeOnboarding(onClosed) {
+      const root = onboardingRoot();
+      if (!root) {
+        document.body.classList.remove('app-booting', 'onboarding-open');
+        onClosed?.();
+        return;
+      }
+      if (onboardingClosing) return;
+      onboardingClosing = true;
+      // Reveal the prepared home view behind the opaque onboarding screen, so its
+      // entrance overlaps the screen fade instead of starting after it.
+      document.body.classList.remove('app-booting', 'onboarding-open');
+      playHomeEntrance();
+      root.classList.add('is-closing');
+      window.setTimeout(() => {
+        root.classList.remove('is-open', 'is-closing', 'is-initializing');
+        if (root.open && typeof root.close === 'function') root.close();
+        else root.hidden = true;
+        onboardingClosing = false;
+        onClosed?.();
+      }, onboardingMotionDuration(340));
+    }
+    function shouldShowOnboarding(rawState) {
+      return !rawState || rawState.onboardingStatus !== 'complete';
+    }
+    function showOnboarding(rawState) {
+      const root = onboardingRoot();
+      if (!root || !state || !shouldShowOnboarding(rawState)) return false;
+      hydrateOnboarding(root);
+      onboardingStep = 0;
+      renderOnboardingSteps();
+      const resetReason = (() => { try { return sessionStorage.getItem(ONBOARDING_RESET_SESSION_KEY); } catch (_) { return null; } })();
+      if (resetReason) {
+        root.dataset.onboardingReason = resetReason;
+        try { sessionStorage.removeItem(ONBOARDING_RESET_SESSION_KEY); } catch (_) {}
+      }
+      document.body.classList.add('onboarding-open');
+      root.hidden = false;
+      root.classList.add('is-open', 'is-initializing');
+      stabilizeOnboardingFormHeight(root);
+      window.setTimeout(() => root.classList.remove('is-initializing'), onboardingMotionDuration(360));
+      if (typeof root.showModal === 'function' && !root.open) {
+        try { root.showModal(); } catch (_) { /* A non-dialog fallback remains visible. */ }
+      }
+      window.setTimeout(() => root.querySelector('input, select, button')?.focus(), 0);
+      return true;
+    }
+    async function refreshOnboardingCatalog() {
+      try {
+        const result = await fetchPricingCatalog();
+        mergePricingModels(Array.isArray(result.models) ? result.models : []);
+        state.pricingCatalogInitialized = true;
+        state.pricingCatalogFetchedAt = result.fetchedAt || new Date().toISOString();
+        applyOnboardingModelSelection();
+        update();
+        if (result.warning) console.warn(result.warning);
+      } catch (error) {
+        // The already-installed bundled snapshot remains usable when the network
+        // is unavailable.  Do not surface a blocking error after setup is done.
+        console.warn('Onboarding pricing sync failed; keeping bundled prices.', error);
+      }
+    }
+    function completeOnboarding() {
+      if (!state || onboardingSubmitting) return;
+      applyOnboardingPreferences(false);
+      const providers = selectedOnboardingProviders();
+      onboardingSubmitting = true;
+      state.onboardingProviders = providers;
+      state.onboardingVersion = ONBOARDING_VERSION;
+      state.onboardingStatus = 'complete';
+      state.pricingCatalogInitialized = true;
+      installOnboardingSnapshot();
+      applyOnboardingModelSelection();
+      renderStructureUnit();
+      update();
+      closeOnboarding(() => { onboardingSubmitting = false; });
+      if (state.onboardingOnlineSync) void refreshOnboardingCatalog();
+    }
+    function setupOnboarding() {
+      const root = onboardingRoot();
+      if (!root || root.dataset.onboardingBound) return;
+      root.dataset.onboardingBound = 'true';
+      const skipProvidersDialog = $('onboardingSkipProvidersDialog');
+      const skipProvidersConfirm = $('onboardingSkipProvidersConfirm');
+      const requestOnboardingStep = target => {
+        const steps = [...root.querySelectorAll('[data-onboarding-step]')];
+        const nextIndex = typeof target === 'number'
+          ? target
+          : steps.findIndex(step => String(step.dataset.onboardingStep) === String(target));
+        const currentName = String(steps[onboardingStep]?.dataset.onboardingStep || '');
+        if (currentName === 'providers' && nextIndex > onboardingStep && !selectedOnboardingProviders(root).length && !onboardingSkipProvidersConfirmed) {
+          if (skipProvidersDialog) {
+            skipProvidersDialog.dataset.onboardingStepTarget = String(target);
+            skipProvidersDialog.showModal();
+            return;
+          }
+        }
+        setOnboardingStep(target);
+      };
+      if (skipProvidersDialog && !skipProvidersDialog.dataset.onboardingBound) {
+        skipProvidersDialog.dataset.onboardingBound = 'true';
+        skipProvidersConfirm?.addEventListener('click', () => {
+          onboardingSkipProvidersConfirmed = true;
+          const target = skipProvidersDialog.dataset.onboardingStepTarget || 'data';
+          skipProvidersDialog.close();
+          setOnboardingStep(target);
+        });
+        skipProvidersDialog.addEventListener('click', event => {
+          if (event.target === skipProvidersDialog) skipProvidersDialog.close();
+        });
+      }
+      root.addEventListener('change', event => {
+        const target = event.target;
+        if (target.closest?.('[data-onboarding-provider]')) {
+          if (state) state.onboardingProviders = selectedOnboardingProviders(root);
+          onboardingSkipProvidersConfirmed = false;
+          renderOnboardingProviderSummary(root);
+          setOnboardingFeedback();
+          return;
+        }
+        if (target.matches?.('#onboardingLanguage input, #onboardingCurrency input, #onboardingTheme input, #onboardingOnlineSync, #onboardingFullCatalog, [data-onboarding-setting], [data-onboarding-preference]')) {
+          applyOnboardingPreferences();
+        }
+      });
+      root.addEventListener('click', event => {
+        const provider = event.target.closest?.('[data-onboarding-provider]');
+        if (provider && !provider.matches('input')) {
+          const selected = new Set(selectedOnboardingProviders(root));
+          const id = onboardingProviderId(provider);
+          if (selected.has(id)) selected.delete(id); else selected.add(id);
+          state.onboardingProviders = [...selected];
+          onboardingSkipProvidersConfirmed = false;
+          setSelectedOnboardingProviders(state.onboardingProviders, root);
+          renderOnboardingProviderSummary(root);
+          setOnboardingFeedback();
+          return;
+        }
+        if (event.target.closest?.('[data-onboarding-prev], #onboardingPrev')) {
+          const button = event.target.closest('[data-onboarding-prev], #onboardingPrev');
+          setOnboardingStep(button.dataset.onboardingStepTarget || onboardingStep - 1);
+          return;
+        }
+        if (event.target.closest?.('[data-onboarding-next], #onboardingNext')) {
+          const button = event.target.closest('[data-onboarding-next], #onboardingNext');
+          requestOnboardingStep(button.dataset.onboardingStepTarget || onboardingStep + 1);
+          return;
+        }
+        if (event.target.closest?.('[data-onboarding-complete], #onboardingComplete')) completeOnboarding();
+      });
+      root.querySelector('form')?.addEventListener('submit', event => { event.preventDefault(); completeOnboarding(); });
+      root.addEventListener('cancel', event => event.preventDefault());
     }
     const money = (usd, fxRate) => {
       const amount = state.currency === 'CNY' ? usd * num(fxRate) : usd;
@@ -1337,19 +1932,25 @@
       ensureSelection('tokenRows');
       ensureSelection('budgetRows');
     }
+    async function fetchPricingCatalog() {
+      const api = window.pywebview && window.pywebview.api;
+      if (!api || typeof api.fetch_pricing_models !== 'function') throw new Error('Pricing catalog API is unavailable');
+      const result = await api.fetch_pricing_models();
+      if (!result || !result.ok) throw new Error(result && result.error ? result.error : 'Unknown pricing error');
+      return result;
+    }
     async function syncPricingModels() {
       const api = window.pywebview && window.pywebview.api;
       const button = $('settingsSyncPrices');
       const status = $('pricingStatus');
-      if (!api || !button) return;
-      button.disabled = true;
+      if (!api) return;
+      if (button) button.disabled = true;
       if (status) {
         status.className = 'pricing-status loading';
         status.textContent = t('pricing.syncing');
       }
       try {
-        const result = await api.fetch_pricing_models();
-        if (!result || !result.ok) throw new Error(result && result.error ? result.error : 'Unknown pricing error');
+        const result = await fetchPricingCatalog();
         mergePricingModels(Array.isArray(result.models) ? result.models : []);
         state.pricingCatalogInitialized = true;
         state.pricingCatalogFetchedAt = result.fetchedAt || new Date().toISOString();
@@ -1368,7 +1969,7 @@
         }
         console.error('Failed to sync pricing catalog.', error);
       } finally {
-        button.disabled = false;
+        if (button) button.disabled = false;
       }
     }
     function modelAddCategoryOptions() {
@@ -1461,8 +2062,11 @@
       if (resetConfirmInput.value !== 'RESET') return;
       resetExecuteButton.disabled = true;
       const api = window.pywebview && window.pywebview.api;
+      isResetting = true;
+      clearTimeout(saveTimer);
       try {
         if (!api || await api.reset_state()) {
+          try { sessionStorage.setItem(ONBOARDING_RESET_SESSION_KEY, 'reset'); } catch (_) {}
           localStorage.removeItem('token-cost-calc');
           resetTextDialog?.close();
           location.reload();
@@ -1471,6 +2075,7 @@
         throw new Error('reset_state returned false');
       } catch (error) {
         console.error('Failed to reset application.', error);
+        isResetting = false;
         resetExecuteButton.disabled = false;
         if (resetDialogError) {
           resetDialogError.textContent = t('resetDialog.failed');
@@ -1501,6 +2106,7 @@
       if (systemTheme.addEventListener) systemTheme.addEventListener('change', onSystemThemeChange);
       else if (systemTheme.addListener) systemTheme.addListener(onSystemThemeChange);
     }
+    setupOnboarding();
     applyTheme('system');
     window.addEventListener('pywebviewready', async () => {
       try {
@@ -1511,8 +2117,9 @@
         ]);
         DEFAULT = defaults;
         PRICING_CONFIG = pricingConfig || {};
-         const shouldSyncPricing = !saved || saved.pricingCatalogInitialized !== true;
-         state = migrate(saved || loadLegacyState(), PRICING_CONFIG);
+        const rawState = saved || loadLegacyState();
+        const onboardingRequired = shouldShowOnboarding(rawState);
+        state = migrate(rawState, PRICING_CONFIG);
         state.language = window.i18n.setLocale(state.language);
         window.i18n.translateDocument();
         renderStructureUnit();
@@ -1527,10 +2134,19 @@
         if ($('theme')) $('theme').value = state.theme;
         applyTheme(state.theme);
         applySidebarCollapsed(state.sidebarCollapsed || window.innerWidth <= 740, false);
-        setSettingsSection(state.settingsSection, false);
-         setActiveView(state.activeView, false);
-         update();
-         if (shouldSyncPricing) window.setTimeout(() => syncPricingModels(), 0);
+         setSettingsSection(state.settingsSection, false);
+        setActiveView(state.activeView, false);
+        update();
+        const onboardingVisible = onboardingRequired && showOnboarding(rawState);
+        if (onboardingVisible) {
+          // `onboarding-open` continues to hide the workspace below the full-screen flow.
+          document.body.classList.remove('app-booting');
+        } else {
+          // Let the first fully rendered workspace paint as a whole, never as raw HTML.
+          window.requestAnimationFrame(() => document.body.classList.remove('app-booting'));
+        }
+        const shouldSyncPricing = !onboardingRequired && state.onboardingOnlineSync !== false && state.pricingCatalogInitialized !== true;
+        if (!onboardingVisible && shouldSyncPricing) window.setTimeout(() => syncPricingModels(), 0);
       } catch (error) {
         console.error('Failed to initialize Token Cost Calc.', error);
         document.body.innerHTML = '<main class="app"><p>' + t('error.config') + '</p></main>';
