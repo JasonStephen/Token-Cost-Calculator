@@ -482,6 +482,15 @@
         if (persist) save();
       }
     }
+    function renderMobileViewTitle(view) {
+      const title = $('mobileViewTitle');
+      if (!title) return;
+      const section = document.querySelector('[data-view-section="' + view + '"]');
+      const source = section && section.querySelector('.section-heading h2 > span:first-child');
+      const text = source ? source.textContent.trim() : '';
+      title.textContent = text;
+      title.hidden = !text;
+    }
     function setActiveView(view, persist=true) {
       const activeView = VIEW_IDS.includes(view) ? view : 'home';
       if (activeView !== 'settings' || state?.activeView !== 'settings') clearPricingStatus();
@@ -490,6 +499,7 @@
         section.hidden = !active;
         section.classList.toggle('is-active', active);
       });
+      renderMobileViewTitle(activeView);
       document.querySelectorAll('[data-view-target]').forEach(button => {
         const active = button.dataset.viewTarget === activeView;
         button.classList.toggle('active', active);
@@ -556,6 +566,10 @@
       const url = String(value || '').trim();
       return /^(https:\/\/|data:image\/|icons\/)/i.test(url) ? escapeHtml(url) : '';
     }
+    function localIconUrl(value) {
+      const url = String(value || '').trim();
+      return /^icons\//i.test(url) ? url + (url.includes('?') ? '&' : '?') + 'v=2' : url;
+    }
     function providerIconSources(model) {
       const meta = modelProviderMeta(model);
       const source = PRICING_CONFIG && PRICING_CONFIG.iconSource && typeof PRICING_CONFIG.iconSource === 'object'
@@ -564,8 +578,8 @@
       const providerId = normalizedProvider(meta.id || model && model.providerId || model && model.provider);
       const slug = String(aliases[providerId] || providerId).trim().toLowerCase();
       const baseUrl = String(source.baseUrl || '').replace(/\/$/, '');
-      const catalogIcon = baseUrl && slug ? baseUrl + '/' + encodeURIComponent(slug) + '.svg' : '';
-      const local = meta.icon || model && model.icon || '';
+      const catalogIcon = baseUrl && slug ? localIconUrl(baseUrl + '/' + encodeURIComponent(slug) + '.svg') : '';
+      const local = localIconUrl(meta.icon || model && model.icon || '');
       const primary = safeIconUrl(catalogIcon || local);
       const fallback = safeIconUrl(local);
       return {primary, fallback:primary !== fallback ? fallback : '', monochrome:Boolean(meta.icon)};
@@ -594,7 +608,7 @@
       const provider = modelProvider(model);
       const fallback = escapeHtml((provider || model.name || '?').trim().charAt(0).toUpperCase() || '?');
       const visual = iconSources.primary
-        ? '<img class="model-brand-icon' + (iconSources.monochrome ? ' is-monochrome' : '') + '" src="' + iconSources.primary + '"' + (iconSources.fallback ? ' data-local-source="' + iconSources.fallback + '"' : '') + ' alt="" loading="lazy" data-fallback="' + fallback + '">'
+        ? '<img class="model-brand-icon' + (iconSources.monochrome ? ' is-monochrome' : '') + '" src="' + iconSources.primary + '"' + (iconSources.fallback ? ' data-local-source="' + iconSources.fallback + '"' : '') + ' alt="" decoding="async" data-fallback="' + fallback + '">'
         : '<span class="model-brand-fallback" aria-hidden="true">' + fallback + '</span>';
       return '<span class="model-badge' + (compact ? ' compact' : '') + (tooltip ? ' has-model-tooltip' : '') + '"' + (tooltip ? ' data-model-tooltip="' + escapeHtml(model.name) + '"' : '') + '>' + visual +
         '<span class="model-badge-text"><strong>' + escapeHtml(model.name) + '</strong>' +
@@ -604,7 +618,7 @@
       const iconSources = providerIconSources(model);
       const fallback = escapeHtml(String(provider || '?').trim().charAt(0).toUpperCase() || '?');
       const visual = iconSources.primary
-        ? '<img class="model-brand-icon' + (iconSources.monochrome ? ' is-monochrome' : '') + '" src="' + iconSources.primary + '"' + (iconSources.fallback ? ' data-local-source="' + iconSources.fallback + '"' : '') + ' alt="" loading="lazy" data-fallback="' + fallback + '">'
+        ? '<img class="model-brand-icon' + (iconSources.monochrome ? ' is-monochrome' : '') + '" src="' + iconSources.primary + '"' + (iconSources.fallback ? ' data-local-source="' + iconSources.fallback + '"' : '') + ' alt="" decoding="async" data-fallback="' + fallback + '">'
         : '<span class="model-brand-fallback" aria-hidden="true">' + fallback + '</span>';
       return '<span class="provider-filter-badge">' + visual + '<span>' + escapeHtml(provider) + '</span></span>';
     }
@@ -677,8 +691,14 @@
         mobileStatus.onchange = () => { settingsStatusFilter = mobileStatus.value; settingsModelPage = 1; renderSettingsModelList(); };
       }
       const pricingOptions = [['', pricingFilterText('')], ['custom', pricingFilterText('custom')], ['original', pricingFilterText('original')]];
-      const bindPricingFilter = (root, name) => {
+      const bindPricingFilter = (root, name, compact=false) => {
         if (!root) return;
+        if (compact) {
+          root.innerHTML = pricingOptions.map(([value, label]) => '<option value="' + escapeHtml(value) + '"' + (settingsPricingFilter === value ? ' selected' : '') + '>' + escapeHtml(label) + '</option>').join('');
+          root.value = settingsPricingFilter;
+          root.onchange = () => { settingsPricingFilter = root.value; settingsModelPage = 1; renderSettingsModelList(); };
+          return;
+        }
         root.innerHTML = pricingOptions.map(([value, label]) => '<label class="custom-pricing-filter-option"><input type="radio" name="' + name + '" value="' + value + '"' + (settingsPricingFilter === value ? ' checked' : '') + '><span>' + escapeHtml(label) + '</span></label>').join('');
         root.querySelectorAll('input').forEach(input => input.addEventListener('change', () => {
           settingsPricingFilter = input.value;
@@ -687,7 +707,7 @@
         }));
       };
       bindPricingFilter($('settingsCustomPricingList'), 'settingsPricingDesktop');
-      bindPricingFilter($('settingsMobileCustomPricing'), 'settingsPricingMobile');
+      bindPricingFilter($('settingsMobileCustomPricing'), 'settingsPricingMobile', true);
       const bindSearch = input => {
         if (!input) return;
         if (input.value !== settingsModelSearchQuery) input.value = settingsModelSearchQuery;
@@ -1204,7 +1224,7 @@
       save();
     };
     $('currency').onchange=e=>{state.currency=e.target.value; update();};
-    $('language').onchange = event => { state.language = window.i18n.setLocale(event.target.value); window.i18n.translateDocument(); renderStructureUnit(); renderSettingsModelFilters(); update(); };
+    $('language').onchange = event => { state.language = window.i18n.setLocale(event.target.value); window.i18n.translateDocument(); renderMobileViewTitle(state.activeView); renderStructureUnit(); renderSettingsModelFilters(); update(); };
     $('showHostedModels').onchange = event => {
       state.showHostedModels = event.target.checked;
       settingsProviderSelection.clear();
