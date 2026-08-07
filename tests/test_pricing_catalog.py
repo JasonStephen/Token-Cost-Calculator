@@ -20,6 +20,8 @@ class PricingCatalogTests(unittest.TestCase):
             "models.nonCustomPricing",
             "models.pricingSelected",
             "scenario.emptyAdd",
+            "filter.modelOrder",
+            "filter.modelOrderHint",
         }
         locale_files = {
             "zh-CN": root / "web" / "locales" / "zh-CN.js",
@@ -135,6 +137,15 @@ class PricingCatalogTests(unittest.TestCase):
         self.assertNotIn('id="addModel"', html_source)
         self.assertIn(".app-shell.tool-view-active .tool-view.is-active:not([hidden])", css_source)
         self.assertIn('class="add-btn add-item-icon-btn"', html_source)
+        self.assertIn('data-model-selection-panel="select"', html_source)
+        self.assertIn('id="modelSelectionOrderPanel"', html_source)
+        self.assertIn("modelSelectionPanel = 'select'", app_source)
+        self.assertIn('draggable="true"', app_source)
+        self.assertIn("data-model-order-id", app_source)
+        self.assertNotIn("data-model-order-move", app_source)
+        self.assertIn("is-drop-before", app_source)
+        self.assertIn("is-drop-after", app_source)
+        self.assertIn("model-selection-order-hint", app_source)
         self.assertIn(".scenario-config { width:100%; max-width:760px; display:grid; grid-template-columns:repeat(5, minmax(0, 1fr));", css_source)
         self.assertGreaterEqual(css_source.count(".section-actions { width:100%; flex-wrap:wrap; justify-content:flex-end; }"), 2)
         self.assertIn(".scenario-config { grid-template-columns:repeat(2, minmax(0, 1fr)); max-width:none; }", css_source)

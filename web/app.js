@@ -17,6 +17,7 @@
     let modelSelectionType = null;
     let modelSelectionDraft = new Set();
     let modelSelectionProvider = '';
+    let modelSelectionPanel = 'select';
     const systemTheme = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
     function uiText(key, fallback, fallbackCjk=fallback) {
@@ -809,14 +810,18 @@
       pendingModelConfigId = null;
     }
     function selectedKey(type) { return type === 'tokenRows' ? 'tokenSelectedModelIds' : 'budgetSelectedModelIds'; }
-    function selectedModels(type) { return enabledModels().filter(model => state[selectedKey(type)].includes(model.id)); }
+    function modelsBySelection(ids) {
+      const models = new Map(enabledModels().map(model => [model.id, model]));
+      return (ids || []).map(id => models.get(id)).filter(Boolean);
+    }
+    function selectedModels(type) { return modelsBySelection(state[selectedKey(type)]); }
     function ensureComparisonSelection() {
       const key = 'comparisonSelectedModelIds';
       state[key] = [...new Set((state[key] || []).filter(id => state.models.some(model => model.id === id && modelEnabled(model))))];
     }
     function comparisonModels() {
       ensureComparisonSelection();
-      return enabledModels().filter(model => state.comparisonSelectedModelIds.includes(model.id));
+      return modelsBySelection(state.comparisonSelectedModelIds);
     }
     function renderComparisonFilter() {
       const root = $('comparisonModelFilter');
@@ -845,9 +850,69 @@
       return [...groups.values()];
     }
     function renderModelSelectionDialog() {
+      const choicePanel = $('modelSelectionChoicePanel');
+      const orderPanel = $('modelSelectionOrderPanel');
+      if (!choicePanel || !orderPanel) return;
+      document.querySelectorAll('[data-model-selection-panel]').forEach(button => {
+        const active = button.dataset.modelSelectionPanel === modelSelectionPanel;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-selected', String(active));
+        button.onclick = () => {
+          modelSelectionPanel = button.dataset.modelSelectionPanel;
+          renderModelSelectionDialog();
+        };
+      });
+      if (modelSelectionPanel === 'order') {
+        choicePanel.hidden = true;
+        choicePanel.innerHTML = '';
+        orderPanel.hidden = false;
+        const orderedModels = modelsBySelection([...modelSelectionDraft]);
+        orderPanel.innerHTML = '<div class="model-selection-panel-label">' + escapeHtml(t('filter.modelOrder')) + '</div><p class="model-selection-order-hint">' + escapeHtml(t('filter.modelOrderHint')) + '</p><div id="modelSelectionOrder">' + (orderedModels.length ? orderedModels.map(model =>
+          '<div class="model-selection-order-item" draggable="true" data-model-order-id="' + escapeHtml(model.id) + '"><span class="model-order-drag-handle" aria-hidden="true">&#8942;</span><span>' + modelBadge(model, true) + '</span></div>'
+        ).join('') : '<p class="model-selection-empty">' + t('filter.noModels') + '</p>') + '</div>';
+        const orderRoot = $('modelSelectionOrder');
+        orderRoot?.querySelectorAll('[data-model-order-id]').forEach(item => {
+          item.addEventListener('dragstart', event => {
+            if (!event.dataTransfer) return;
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', item.dataset.modelOrderId);
+            item.classList.add('is-dragging');
+          });
+          item.addEventListener('dragend', () => orderRoot.querySelectorAll('.is-dragging, .is-drop-before, .is-drop-after').forEach(node => node.classList.remove('is-dragging', 'is-drop-before', 'is-drop-after')));
+          item.addEventListener('dragover', event => {
+            event.preventDefault();
+            const bounds = item.getBoundingClientRect();
+            const insertBefore = event.clientY < bounds.top + bounds.height / 2;
+            item.classList.toggle('is-drop-before', insertBefore);
+            item.classList.toggle('is-drop-after', !insertBefore);
+            if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+          });
+          item.addEventListener('dragleave', event => {
+            if (!item.contains(event.relatedTarget)) item.classList.remove('is-drop-before', 'is-drop-after');
+          });
+          item.addEventListener('drop', event => {
+            event.preventDefault();
+            if (!event.dataTransfer) return;
+            const sourceId = event.dataTransfer.getData('text/plain');
+            const targetId = item.dataset.modelOrderId;
+            if (!sourceId || sourceId === targetId) return;
+            const insertBefore = item.classList.contains('is-drop-before');
+            const ids = [...modelSelectionDraft].filter(id => id !== sourceId);
+            const targetIndex = ids.indexOf(targetId);
+            if (targetIndex < 0) return;
+            ids.splice(insertBefore ? targetIndex : targetIndex + 1, 0, sourceId);
+            modelSelectionDraft = new Set(ids);
+            renderModelSelectionDialog();
+          });
+        });
+        return;
+      }
+      choicePanel.hidden = false;
+      orderPanel.hidden = true;
+      orderPanel.innerHTML = '';
+      choicePanel.innerHTML = '<aside class="model-selection-provider-panel"><div class="model-selection-panel-label">' + escapeHtml(t('filter.provider')) + '</div><div id="modelSelectionProviders"></div></aside><section class="model-selection-model-panel"><div class="model-selection-panel-label">' + escapeHtml(t('filter.availableModels')) + '</div><div id="modelSelectionModels"></div></section>';
       const providersRoot = $('modelSelectionProviders');
       const modelsRoot = $('modelSelectionModels');
-      if (!providersRoot || !modelsRoot) return;
       const groups = modelSelectionGroups();
       if (!groups.some(group => group.id === modelSelectionProvider)) modelSelectionProvider = groups[0]?.id || '';
       providersRoot.innerHTML = groups.length
@@ -881,6 +946,7 @@
       const key = type === 'comparison' ? 'comparisonSelectedModelIds' : selectedKey(type);
       modelSelectionDraft = new Set(state[key] || []);
       modelSelectionProvider = '';
+      modelSelectionPanel = 'select';
       renderModelSelectionDialog();
       $('modelSelectionDialog')?.showModal();
     }
@@ -889,6 +955,7 @@
       modelSelectionType = null;
       modelSelectionDraft = new Set();
       modelSelectionProvider = '';
+      modelSelectionPanel = 'select';
     }
     function applyModelSelection() {
       if (!modelSelectionType) return closeModelSelection();
@@ -1195,6 +1262,7 @@
       modelSelectionType = null;
       modelSelectionDraft = new Set();
       modelSelectionProvider = '';
+      modelSelectionPanel = 'select';
     });
     const settingsPageSizeSelect = $('settingsModelPageSize');
     if (settingsPageSizeSelect) settingsPageSizeSelect.addEventListener('change', event => {

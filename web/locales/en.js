@@ -179,6 +179,8 @@ window.localeData["en"] = {
   "section.budget.subtitle": "Estimate total usable tokens from a budget",
   "scenario.hint": "When shared is checked, a field applies to every row. Clear it to set rows separately.",
   "scenario.emptyAdd": "Click here to create a new item",
+  "filter.modelOrder": "Model order",
+  "filter.modelOrderHint": "Drag above or below another item. The yellow line shows the insertion point.",
   "footer.note": "Note: cache hits are part of input. You control model prices, exchange rates, and expense multipliers. Results include model token charges only, excluding tools, tax, and other service fees.",
   "footer.storage": "Local calculator / state saved in token-cost-calc.json",
   "dialog.deleteModelTitle": "Delete model?",

@@ -191,10 +191,9 @@
   <dialog class="model-selection-dialog" id="modelSelectionDialog" aria-labelledby="modelSelectionTitle">
     <form method="dialog" class="model-selection-form">
       <div class="help-dialog-heading"><h3 id="modelSelectionTitle" data-i18n="filter.modelSelect">Model selection</h3><button class="icon-btn" id="closeModelSelection" type="button" data-i18n-title="action.cancel" data-i18n-aria-label="action.cancel" aria-label="Cancel">X</button></div>
-      <div class="model-selection-layout">
-        <aside class="model-selection-provider-panel"><div class="model-selection-panel-label" data-i18n="filter.provider">Provider</div><div id="modelSelectionProviders"></div></aside>
-        <section class="model-selection-model-panel"><div class="model-selection-panel-label" data-i18n="filter.availableModels">Available models</div><div id="modelSelectionModels"></div></section>
-      </div>
+      <div class="model-selection-tabs" role="tablist" aria-label="Model selection sections"><button class="model-selection-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="modelSelectionChoicePanel" data-model-selection-panel="select" data-i18n="filter.modelSelect">Model selection</button><button class="model-selection-tab" type="button" role="tab" aria-selected="false" aria-controls="modelSelectionOrderPanel" data-model-selection-panel="order" data-i18n="filter.modelOrder">Model order</button></div>
+      <div class="model-selection-layout" id="modelSelectionChoicePanel" role="tabpanel"></div>
+      <section class="model-selection-order-panel" id="modelSelectionOrderPanel" role="tabpanel" hidden></section>
       <div class="confirm-dialog-actions"><button class="text-btn" id="cancelModelSelection" type="button" data-i18n="action.cancel">Cancel</button><button class="add-btn" id="applyModelSelection" type="button" data-i18n="action.confirm">Confirm</button></div>
     </form>
   </dialog>

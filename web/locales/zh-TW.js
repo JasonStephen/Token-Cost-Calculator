@@ -103,6 +103,8 @@ window.localeData["zh-TW"] = {
   "section.budget.subtitle": "按預算估算可使用的總 Token",
   "scenario.hint": "勾選共用後，該欄位將套用到所有項目；取消勾選後可為每一項個別設定。",
   "scenario.emptyAdd": "點擊此處建立新項目",
+  "filter.modelOrder": "模型排序",
+  "filter.modelOrderHint": "拖到另一項的上方或下方，黃色橫線會提示插入位置。",
   "footer.note": "註：快取命中視為輸入的一部分。模型價格、匯率和開支倍率均由你控制；計算結果僅包含模型 Token 費用，不含工具呼叫、稅費及其他服務費用。",
   "footer.storage": "本機計算器 / 狀態儲存在 token-cost-calc.json",
   "dialog.deleteModelTitle": "刪除模型？",
