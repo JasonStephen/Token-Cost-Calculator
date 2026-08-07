@@ -14,6 +14,9 @@
     let settingsPricingFilter = '';
     let sidebarWasNarrow = window.innerWidth <= 740;
     let settingsProviderSelection = new Set();
+    let modelSelectionType = null;
+    let modelSelectionDraft = new Set();
+    let modelSelectionProvider = '';
     const systemTheme = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
     function uiText(key, fallback, fallbackCjk=fallback) {
@@ -176,14 +179,26 @@
     const percent = value => Math.min(100, Math.max(0, num(value)));
     const clone = value => JSON.parse(JSON.stringify(value));
     const STRUCTURE_UNIT_TO_M = {K:.001, M:1, B:1000};
-    function tokenUnitFactor(unit) { return STRUCTURE_UNIT_TO_M[unit] || 1; }
+    const TOKEN_UNITS = ['auto', 'K', 'M', 'B'];
+    function normalizeTokenUnit(unit, fallback='M') { return TOKEN_UNITS.includes(unit) ? unit : fallback; }
+    function automaticTokenUnit(values) {
+      const largest = Math.max(0, ...(Array.isArray(values) ? values : [values]).map(num));
+      if (largest >= 1000) return 'B';
+      if (largest > 0 && largest < 1) return 'K';
+      return 'M';
+    }
+    function tokenUnitFactor(unit) { return STRUCTURE_UNIT_TO_M[normalizeTokenUnit(unit)] || 1; }
     function tokenDisplayValue(valueM, unit) { return Number((num(valueM) / tokenUnitFactor(unit)).toFixed(6)).toString(); }
     function tokenStoredValue(value, unit) { return num(value) * tokenUnitFactor(unit); }
-    function structureUnitFactor() { return tokenUnitFactor(state.structureUnit); }
-    function structureDisplayValue(valueM) { return tokenDisplayValue(valueM, state.structureUnit); }
+    function structureTokenUnit() {
+      const preference = normalizeTokenUnit(state && state.structureUnit);
+      return preference === 'auto' ? automaticTokenUnit([state.cache, state.input, state.output]) : preference;
+    }
+    function structureUnitFactor() { return tokenUnitFactor(structureTokenUnit()); }
+    function structureDisplayValue(valueM) { return tokenDisplayValue(valueM, structureTokenUnit()); }
     function renderStructureUnit() {
-      const unit = state.structureUnit || 'M';
-      $('structureUnit').value = unit;
+      const unit = structureTokenUnit();
+      $('structureUnit').value = normalizeTokenUnit(state.structureUnit);
       $('cache').value = structureDisplayValue(state.cache);
       $('input').value = structureDisplayValue(state.input);
       $('output').value = structureDisplayValue(state.output);
@@ -199,7 +214,9 @@
       comparison: [
         {key:'ratio', labelKey:'field.inputOutput', unit:': 1', step:'0.1'},
         {key:'hit', labelKey:'field.cacheHitRate', unit:'%', step:'0.1', converter:percent},
-        {key:'total', labelKey:'field.totalTokens', unit:'M', step:'0.1'}
+        {key:'total', labelKey:'field.totalTokens', unit:'M', step:'0.1'},
+        {key:'multiplier', labelKey:'field.expenseMultiplier', unit:'x', step:'0.001'},
+        {key:'fxRate', labelKey:'field.usdCnyRate', unit:'', step:'0.01'}
       ],
       tokenRows: [
         {key:'ratio', labelKey:'field.inputOutput', unit:': 1', step:'0.1'},
@@ -232,9 +249,27 @@
     }
     function configFor(type) { return type === 'comparison' ? state.comparisonConfig : (type === 'tokenRows' ? state.tokenConfig : state.budgetConfig); }
     function fieldsFor(type) { return SCENARIO_FIELDS[type].map(field => ({...field, label:t(field.labelKey)})); }
-    function scenarioTokenUnit(type) { return type === 'comparison' ? state.comparisonUnit : (type === 'tokenRows' ? state.tokenUnit : state.budgetUnit); }
+    function scenarioTokenValues(type) {
+      if (type === 'comparison') return [state.comparisonConfig.total, ...comparisonModels().map(model => model.comparisonTotal)];
+      if (type === 'tokenRows') return [state.tokenConfig.total, ...state.tokenRows.map(row => row.total)];
+      return state.budgetRows.flatMap(row => {
+        const usage = {ratio:scenarioValue('budgetRows', row, 'ratio'), hit:scenarioValue('budgetRows', row, 'hit')};
+        const budget = scenarioValue('budgetRows', row, 'budget');
+        const multiplier = scenarioValue('budgetRows', row, 'multiplier');
+        const fxRate = scenarioValue('budgetRows', row, 'fxRate');
+        const budgetUsd = budget / (state.currency === 'CNY' ? num(fxRate) : 1);
+        return selectedModels('budgetRows').map(model => {
+          const perM = cost(model, 1, usage, multiplier);
+          return perM ? budgetUsd / perM : 0;
+        });
+      });
+    }
+    function scenarioTokenUnit(type) {
+      const preference = normalizeTokenUnit(type === 'comparison' ? state.comparisonUnit : (type === 'tokenRows' ? state.tokenUnit : state.budgetUnit));
+      return preference === 'auto' ? automaticTokenUnit(scenarioTokenValues(type)) : preference;
+    }
     function scenarioFieldLabel(type, field) {
-      return (type === 'comparison' || type === 'tokenRows') && field.key === 'total' ? t('field.totalTokensUnit', {unit:scenarioTokenUnit(type)}) : field.label;
+      return (type === 'comparison' || type === 'tokenRows') && field.key === 'total' ? t('field.totalTokens') : field.label;
     }
     function scenarioFieldDisplayValue(type, field, value) {
       return (type === 'comparison' || type === 'tokenRows') && field.key === 'total' ? tokenDisplayValue(value, scenarioTokenUnit(type)) : value;
@@ -289,6 +324,8 @@
         ratio:valueOr(saved.knownRatio, DEFAULT.comparisonConfig.ratio),
         hit:percent(valueOr(saved.knownHit, DEFAULT.comparisonConfig.hit)),
         total:DEFAULT.comparisonConfig.total,
+        multiplier:valueOr(saved.comparisonMultiplier, DEFAULT.comparisonConfig.multiplier),
+        fxRate:valueOr(saved.comparisonFxRate, DEFAULT.comparisonConfig.fxRate),
         shared:DEFAULT.comparisonConfig.shared
       };
       const comparisonConfig = normalizeConfig(saved.comparisonConfig, comparisonFallback, 'comparison');
@@ -368,6 +405,10 @@
       const theme = THEME_IDS.includes(saved.theme) ? saved.theme : 'system';
       return {
         ...DEFAULT, ...saved, models, comparisonConfig, tokenConfig, budgetConfig, activeView, theme,
+        structureUnit:normalizeTokenUnit(saved.structureUnit, normalizeTokenUnit(DEFAULT.structureUnit)),
+        comparisonUnit:normalizeTokenUnit(saved.comparisonUnit, normalizeTokenUnit(DEFAULT.comparisonUnit)),
+        tokenUnit:normalizeTokenUnit(saved.tokenUnit, normalizeTokenUnit(DEFAULT.tokenUnit)),
+        budgetUnit:normalizeTokenUnit(saved.budgetUnit, normalizeTokenUnit(DEFAULT.budgetUnit)),
         sidebarCollapsed:Boolean(saved.sidebarCollapsed), showHostedModels:Boolean(saved.showHostedModels), settingsSection:['general', 'models', 'about', 'reset'].includes(saved.settingsSection) ? saved.settingsSection : 'general', stateVersion:10,
         tokenRows:normalizeRows(saved.tokenRows, 'tokenRows', tokenConfig),
         budgetRows:normalizeRows(saved.budgetRows, 'budgetRows', budgetConfig),
@@ -458,6 +499,7 @@
       });
       document.querySelectorAll('[data-view-footer]').forEach(element => { element.hidden = activeView === 'home' || activeView === 'settings'; });
       document.querySelector('.sidebar')?.classList.toggle('is-settings-mode', activeView === 'settings');
+      document.querySelector('.app-shell')?.classList.toggle('tool-view-active', ['structure', 'comparison', 'tokenCost', 'budget'].includes(activeView));
       document.querySelector('.app-shell')?.classList.toggle('settings-models-active', activeView === 'settings' && state?.settingsSection === 'models');
       document.querySelector('.app-shell')?.classList.toggle('settings-about-active', activeView === 'settings' && state?.settingsSection === 'about');
       if (state) {
@@ -483,8 +525,7 @@
     const tokens = (amountM, unit='M') => (num(amountM) / tokenUnitFactor(unit)).toLocaleString('zh-CN', {maximumFractionDigits:2}) + ' ' + unit + ' Token';
     function bind(id, key, converter=num) { $(id).addEventListener('input', e => { state[key] = converter(e.target.value); update(); }); }
     function priceRow(label, key) { return `<div class="cell label-cell">${label}</div>${comparisonModels().map(m => `<div class="cell"><input class="price-input" data-model-key="${key}" data-model-id="${m.id}" type="number" min="0" step="0.001" value="${m[key]}"></div>`).join('')}`; }
-    function modelSettingRow(label, key, step) { return `<div class="cell label-cell">${label}</div>${comparisonModels().map(m => `<div class="cell"><input class="price-input" data-model-key="${key}" data-model-id="${m.id}" type="number" min="0" step="${step}" value="${m[key]}"></div>`).join('')}`; }
-    function multipliedPriceRow(label, key) { return `<div class="cell label-cell">${label}</div>${comparisonModels().map(m => `<div class="cell"><div class="money">${dualMoney(num(m[key]) * num(m.multiplier), m.fxRate)}</div></div>`).join('')}`; }    function standardCost(model, totalM, usage) {
+    function multipliedPriceRow(label, key) { return `<div class="cell label-cell">${label}</div>${comparisonModels().map(m => `<div class="cell"><div class="money">${dualMoney(num(m[key]) * num(comparisonValue(m, 'multiplier')), comparisonValue(m, 'fxRate'))}</div></div>`).join('')}`; }    function standardCost(model, totalM, usage) {
       const ratio = num(usage.ratio);
       const hit = percent(usage.hit) / 100;
       const total = totalM * 1000000;
@@ -761,24 +802,11 @@
       ensureComparisonSelection();
       return enabledModels().filter(model => state.comparisonSelectedModelIds.includes(model.id));
     }
-    function renderComparisonFilter(keepOpen=false) {
+    function renderComparisonFilter() {
       const root = $('comparisonModelFilter');
       ensureComparisonSelection();
-      const selected = state.comparisonSelectedModelIds;
-      const count = selected.length;
-      root.innerHTML = '<details class="model-picker"' + (keepOpen ? ' open' : '') + '><summary>' + t('filter.visibleModels', {count}) + '</summary><div class="model-options">' + enabledModels().map(model => {
-        const checked = selected.includes(model.id);
-        return '<label class="check-label model-check"><input type="checkbox" data-comparison-model-filter="' + model.id + '"' + (checked ? ' checked' : '') + (checked && count === 1 ? ' disabled' : '') + '>' + modelBadge(model) + '</label>';
-      }).join('') + '</div></details>';
-      root.querySelectorAll('[data-comparison-model-filter]').forEach(input => input.addEventListener('change', event => {
-        const id = event.target.dataset.comparisonModelFilter;
-        if (event.target.checked) state.comparisonSelectedModelIds.push(id);
-        else state.comparisonSelectedModelIds = state.comparisonSelectedModelIds.filter(selectedId => selectedId !== id);
-        ensureComparisonSelection();
-        renderComparison();
-        renderComparisonFilter(true);
-        save();
-      }));
+      root.innerHTML = '<button class="model-select-btn" type="button" data-model-selection="comparison" data-i18n="filter.modelSelect" aria-haspopup="dialog">' + t('filter.modelSelect') + '</button>';
+      root.querySelector('[data-model-selection]')?.addEventListener('click', () => openModelSelection('comparison'));
     }
     function ensureSelection(type) {
       const key = selectedKey(type);
@@ -786,30 +814,96 @@
       const fallback = state.models.find(modelEnabled);
       if (!state[key].length && fallback) state[key] = [fallback.id];
     }
-    function renderModelFilter(type, keepOpen=false) {
+    function renderModelFilter(type) {
       ensureSelection(type);
       const key = selectedKey(type);
       const root = $(type === 'tokenRows' ? 'tokenModelFilter' : 'budgetModelFilter');
-      const count = state[key].length;
-      root.innerHTML = '<details class="model-picker"' + (keepOpen ? ' open' : '') + '><summary>' + t('filter.modelColumns', {count}) + '</summary><div class="model-options">' + enabledModels().map(model => {
-        const checked = state[key].includes(model.id);
-        const disabled = checked && count === 1;
-        return '<label class="check-label model-check"><input type="checkbox" data-model-filter="' + model.id + '"' + (checked ? ' checked' : '') + (disabled ? ' disabled' : '') + '>' + modelBadge(model) + '</label>';
-      }).join('') + '</div></details>';
-      root.querySelectorAll('[data-model-filter]').forEach(input => input.addEventListener('change', event => {
-        const id = event.target.dataset.modelFilter;
-        if (event.target.checked) {
-          if (state[key].length >= 3) state[key].shift();
-          state[key].push(id);
-        } else state[key] = state[key].filter(selectedId => selectedId !== id);
-        ensureSelection(type);
-        if (type === 'tokenRows') renderTokenRows(); else renderBudgetRows();
-        save(); renderModelFilter(type, true);
+      root.innerHTML = '<button class="model-select-btn" type="button" data-model-selection="' + type + '" data-i18n="filter.modelSelect" aria-haspopup="dialog">' + t('filter.modelSelect') + '</button>';
+      root.querySelector('[data-model-selection]')?.addEventListener('click', () => openModelSelection(type));
+    }
+    function modelSelectionGroups() {
+      const groups = new Map();
+      enabledModels().forEach(model => {
+        const provider = modelProvider(model) || uiText('model.add.providerOther', 'Others', '其他');
+        const id = normalizedProvider(model.providerId || provider) || 'others';
+        if (!groups.has(id)) groups.set(id, {id, label:provider, model});
+      });
+      return [...groups.values()];
+    }
+    function renderModelSelectionDialog() {
+      const providersRoot = $('modelSelectionProviders');
+      const modelsRoot = $('modelSelectionModels');
+      if (!providersRoot || !modelsRoot) return;
+      const groups = modelSelectionGroups();
+      if (!groups.some(group => group.id === modelSelectionProvider)) modelSelectionProvider = groups[0]?.id || '';
+      providersRoot.innerHTML = groups.length
+        ? groups.map(group => '<button class="model-provider-option' + (group.id === modelSelectionProvider ? ' is-active' : '') + '" type="button" data-model-selection-provider="' + escapeHtml(group.id) + '">' + providerFilterBadge(group.label, group.model) + '</button>').join('')
+        : '<p class="model-selection-empty">' + t('filter.noModels') + '</p>';
+      const visibleModels = enabledModels().filter(model => {
+        const provider = modelProvider(model) || uiText('model.add.providerOther', 'Others', '其他');
+        return (normalizedProvider(model.providerId || provider) || 'others') === modelSelectionProvider;
+      });
+      const max = modelSelectionType === 'comparison' ? 0 : 3;
+      modelsRoot.innerHTML = '<div class="model-selection-model-heading"><strong>' + escapeHtml(groups.find(group => group.id === modelSelectionProvider)?.label || t('filter.availableModels')) + '</strong>' + (max ? '<span>' + t('filter.maxSelected', {count:max}) + '</span>' : '') + '</div>' + (visibleModels.length ? visibleModels.map(model => {
+        const checked = modelSelectionDraft.has(model.id);
+        return '<label class="model-selection-model' + (checked ? ' is-selected' : '') + '"><input type="checkbox" data-model-selection-model="' + escapeHtml(model.id) + '"' + (checked ? ' checked' : '') + '><span>' + modelBadge(model) + '</span></label>';
+      }).join('') : '<p class="model-selection-empty">' + t('filter.noModels') + '</p>');
+      providersRoot.querySelectorAll('[data-model-selection-provider]').forEach(button => button.addEventListener('click', () => {
+        modelSelectionProvider = button.dataset.modelSelectionProvider;
+        renderModelSelectionDialog();
       }));
+      modelsRoot.querySelectorAll('[data-model-selection-model]').forEach(input => input.addEventListener('change', event => {
+        const id = event.target.dataset.modelSelectionModel;
+        if (event.target.checked) {
+          if (max && modelSelectionDraft.size >= max) modelSelectionDraft.delete(modelSelectionDraft.values().next().value);
+          modelSelectionDraft.add(id);
+        } else if (modelSelectionDraft.size > 1 || modelSelectionType === 'comparison') {
+          modelSelectionDraft.delete(id);
+        } else {
+          event.target.checked = true;
+        }
+        renderModelSelectionDialog();
+      }));
+    }
+    function openModelSelection(type) {
+      if (!state) return;
+      modelSelectionType = type;
+      const key = type === 'comparison' ? 'comparisonSelectedModelIds' : selectedKey(type);
+      modelSelectionDraft = new Set(state[key] || []);
+      modelSelectionProvider = '';
+      renderModelSelectionDialog();
+      $('modelSelectionDialog')?.showModal();
+    }
+    function closeModelSelection() {
+      $('modelSelectionDialog')?.close();
+      modelSelectionType = null;
+      modelSelectionDraft = new Set();
+      modelSelectionProvider = '';
+    }
+    function applyModelSelection() {
+      if (!modelSelectionType) return closeModelSelection();
+      const selected = [...modelSelectionDraft];
+      if (modelSelectionType === 'comparison') {
+        state.comparisonSelectedModelIds = selected;
+        ensureComparisonSelection();
+        renderComparison();
+        renderComparisonFilter();
+      } else {
+        const key = selectedKey(modelSelectionType);
+        state[key] = selected;
+        ensureSelection(modelSelectionType);
+        if (modelSelectionType === 'tokenRows') renderTokenRows(); else renderBudgetRows();
+        renderModelFilter(modelSelectionType);
+      }
+      save();
+      closeModelSelection();
+    }
+    function comparisonModelKey(key) {
+      return key === 'multiplier' || key === 'fxRate' ? key : 'comparison' + key[0].toUpperCase() + key.slice(1);
     }
     function comparisonValue(model, key) {
       const config = state.comparisonConfig;
-      return config.shared[key] ? config[key] : model['comparison' + key[0].toUpperCase() + key.slice(1)];
+      return config.shared[key] ? config[key] : model[comparisonModelKey(key)];
     }
     function openModelDeleteDialog(id) {
       const model = state.models.find(item => item.id === id);
@@ -825,7 +919,7 @@
       root.querySelectorAll('[data-shared-key]').forEach(input => input.addEventListener('change', event => {
         const key = event.target.dataset.sharedKey;
         const shared = event.target.checked;
-        if (!shared) state.models.forEach(model => { model['comparison' + key[0].toUpperCase() + key.slice(1)] = config[key]; });
+        if (!shared) state.models.forEach(model => { model[comparisonModelKey(key)] = config[key]; });
         config.shared[key] = shared;
         renderComparisonConfig();
         renderComparison();
@@ -841,7 +935,7 @@
       });
     }
     function comparisonSettingRow(field) {
-      const property = 'comparison' + field.key[0].toUpperCase() + field.key.slice(1);
+      const property = comparisonModelKey(field.key);
       const unit = field.key === 'total' ? scenarioTokenUnit('comparison') : field.unit;
       return `<div class="cell label-cell">${scenarioFieldLabel('comparison', field)}</div>${comparisonModels().map(model => `<div class="cell"><div class="unit-input"><input class="price-input" data-comparison-key="${field.key}" data-model-id="${model.id}" type="number" min="0" step="${field.step}" value="${scenarioFieldDisplayValue('comparison', field, model[property])}"><span>${unit}</span></div></div>`).join('')}`;
     }
@@ -856,11 +950,9 @@
         ${multipliedPriceRow(t('comparison.inputPriceAdjusted'), 'input')}
         ${priceRow(t('comparison.outputPrice'), 'output')}
         ${multipliedPriceRow(t('comparison.outputPriceAdjusted'), 'output')}
-        ${modelSettingRow(t('comparison.multiplier'), 'multiplier', '0.001')}
-        ${modelSettingRow(t('comparison.fxRate'), 'fxRate', '0.01')}
         ${fieldsFor('comparison').filter(field => !config.shared[field.key]).map(comparisonSettingRow).join('')}
-        <div class="cell label-cell">${t('comparison.actualCost')}</div>${models.map(m=>`<div class="cell"><div class="money big">${dualMoney(cost(m,comparisonValue(m,'total'),{ratio:comparisonValue(m,'ratio'), hit:comparisonValue(m,'hit')},m.multiplier), m.fxRate)}</div></div>`).join('')}
-        <div class="cell label-cell">${t('comparison.standardCost')}</div>${models.map(m=>`<div class="cell"><div class="money">${dualMoney(standardCost(m,comparisonValue(m,'total'),{ratio:comparisonValue(m,'ratio'), hit:comparisonValue(m,'hit')}), m.fxRate)}</div></div>`).join('')}`;
+        <div class="cell label-cell">${t('comparison.actualCost')}</div>${models.map(m=>`<div class="cell"><div class="money big">${dualMoney(cost(m,comparisonValue(m,'total'),{ratio:comparisonValue(m,'ratio'), hit:comparisonValue(m,'hit')},comparisonValue(m,'multiplier')), comparisonValue(m,'fxRate'))}</div></div>`).join('')}
+        <div class="cell label-cell">${t('comparison.standardCost')}</div>${models.map(m=>`<div class="cell"><div class="money">${dualMoney(standardCost(m,comparisonValue(m,'total'),{ratio:comparisonValue(m,'ratio'), hit:comparisonValue(m,'hit')}), comparisonValue(m,'fxRate'))}</div></div>`).join('')}`;
       root.querySelectorAll('.model-head').forEach(el => {
         const model = state.models.find(item => item.id === el.dataset.modelHead);
         if (model) el.insertAdjacentHTML('afterbegin', modelBadge(model, true));
@@ -870,7 +962,7 @@
         const apply = event => {
           const model = state.models.find(item => item.id === event.target.dataset.modelId);
           const field = fieldsFor('comparison').find(item => item.key === event.target.dataset.comparisonKey);
-          if (model) model['comparison' + field.key[0].toUpperCase() + field.key.slice(1)] = scenarioFieldStoredValue('comparison', field, event.target.value);
+          if (model) model[comparisonModelKey(field.key)] = scenarioFieldStoredValue('comparison', field, event.target.value);
         };
         el.addEventListener('input', event => { apply(event); save(); });
         el.addEventListener('change', event => { apply(event); renderComparison(); save(); });
@@ -915,9 +1007,6 @@
       const config = configFor(type);
       return config.shared[key] ? config[key] : row[key];
     }
-    function scenarioHeader(type, fields, models) {
-      return '<div class="scenario-cell scenario-head">#</div>' + fields.map(field => '<div class="scenario-cell scenario-head">' + scenarioFieldLabel(type, field) + '</div>').join('') + models.map(model => '<div class="scenario-cell scenario-head model">' + modelBadge(model, true) + '</div>').join('');
-    }
     function scenarioNumberInput(type, index, field, value) {
       const label = scenarioFieldLabel(type, field);
       const displayValue = scenarioFieldDisplayValue(type, field, value);
@@ -954,23 +1043,25 @@
     function renderTokenRows() {
       const root = $('tokenRows'), config = state.tokenConfig;
       const fields = fieldsFor('tokenRows').filter(field => !config.shared[field.key]);
-      const models = selectedModels('tokenRows'); prepareTable(root, fields, models);
-      root.innerHTML = scenarioHeader('tokenRows', fields, models) + state.tokenRows.map((row, index) => {
+      const models = selectedModels('tokenRows');
+      const entries = state.tokenRows.map((row, index) => {
         const usage = {ratio:scenarioValue('tokenRows', row, 'ratio'), hit:scenarioValue('tokenRows', row, 'hit')};
         const total = scenarioValue('tokenRows', row, 'total');
         const multiplier = scenarioValue('tokenRows', row, 'multiplier');
         const fxRate = scenarioValue('tokenRows', row, 'fxRate');
         const controls = '<div class="scenario-cell scenario-number">' + (index + 1) + '<button class="scenario-remove" data-remove-type="tokenRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '">×</button></div>' + fields.map(field => scenarioNumberInput('tokenRows', index, field, row[field.key])).join('');
         const results = models.map(model => '<div class="scenario-cell scenario-result">' + modelBadge(model, true) + '<span>' + money(cost(model, total, usage, multiplier), fxRate) + '</span><em>' + t('scenario.perHundredMillion', {cost:money(cost(model, 100, usage, multiplier), fxRate)}) + '</em></div>').join('');
-        return controls + results;
+        return '<article class="scenario-entry"><div class="scenario-row-inputs">' + controls + '</div><div class="scenario-result-scroll"><div class="scenario-result-list">' + results + '</div></div></article>';
       }).join('');
+      root.innerHTML = '<div class="scenario-entry-list">' + entries + '</div>';
       bindScenarioRows(root);
     }
     function renderBudgetRows() {
       const root = $('budgetRows'), config = state.budgetConfig;
       const fields = fieldsFor('budgetRows').filter(field => !config.shared[field.key]);
-      const models = selectedModels('budgetRows'); prepareTable(root, fields, models);
-      root.innerHTML = scenarioHeader('budgetRows', fields, models) + state.budgetRows.map((row, index) => {
+      const models = selectedModels('budgetRows');
+      const resultUnit = scenarioTokenUnit('budgetRows');
+      const entries = state.budgetRows.map((row, index) => {
         const usage = {ratio:scenarioValue('budgetRows', row, 'ratio'), hit:scenarioValue('budgetRows', row, 'hit')};
         const budget = scenarioValue('budgetRows', row, 'budget');
         const multiplier = scenarioValue('budgetRows', row, 'multiplier');
@@ -979,10 +1070,11 @@
         const budgetUsd = budget / (state.currency === 'CNY' ? num(fxRate) : 1);
         const results = models.map(model => {
           const perM = cost(model, 1, usage, multiplier);
-          return '<div class="scenario-cell scenario-result">' + modelBadge(model, true) + '<span>' + (perM ? tokens(budgetUsd / perM, state.budgetUnit) : '--') + '</span><em>' + t('scenario.totalByBudget') + '</em></div>';
+          return '<div class="scenario-cell scenario-result">' + modelBadge(model, true) + '<span>' + (perM ? tokens(budgetUsd / perM, resultUnit) : '--') + '</span><em>' + t('scenario.totalByBudget') + '</em></div>';
         }).join('');
-        return controls + results;
+        return '<article class="scenario-entry"><div class="scenario-row-inputs">' + controls + '</div><div class="scenario-result-scroll"><div class="scenario-result-list">' + results + '</div></div></article>';
       }).join('');
+      root.innerHTML = '<div class="scenario-entry-list">' + entries + '</div>';
       bindScenarioRows(root);
     }
     function renderScenario() { renderModelFilter('tokenRows'); renderModelFilter('budgetRows'); renderScenarioConfig('tokenRows'); renderScenarioConfig('budgetRows'); renderTokenRows(); renderBudgetRows(); }
@@ -1066,6 +1158,17 @@
     if ($('settingsSearchClose') && settingsSearchDialog) $('settingsSearchClose').onclick = () => settingsSearchDialog.close();
     settingsSearchDialog?.addEventListener('click', event => {
       if (event.target === event.currentTarget) event.currentTarget.close();
+    });
+    $('closeModelSelection')?.addEventListener('click', closeModelSelection);
+    $('cancelModelSelection')?.addEventListener('click', closeModelSelection);
+    $('applyModelSelection')?.addEventListener('click', applyModelSelection);
+    $('modelSelectionDialog')?.addEventListener('click', event => {
+      if (event.target === event.currentTarget) closeModelSelection();
+    });
+    $('modelSelectionDialog')?.addEventListener('close', () => {
+      modelSelectionType = null;
+      modelSelectionDraft = new Set();
+      modelSelectionProvider = '';
     });
     const settingsPageSizeSelect = $('settingsModelPageSize');
     if (settingsPageSizeSelect) settingsPageSizeSelect.addEventListener('change', event => {

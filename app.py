@@ -21,7 +21,7 @@ def main(*, debug: bool = False) -> None:
         url=WEB_PAGE.as_uri(),
         width=1320,
         height=900,
-        min_size=(360, 640),
+        min_size=(734, 647),
         background_color="#faf9f5",
         js_api=StateApi(DEFAULTS_PATH, STATE_PATH, PRICING_CONFIG_PATH),
     )

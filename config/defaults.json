@@ -25,7 +25,9 @@
     "ratio": 4,
     "hit": 30,
     "total": 100,
-    "shared": {"ratio": true, "hit": true, "total": true}
+    "multiplier": 0.04,
+    "fxRate": 7.2,
+    "shared": {"ratio": true, "hit": true, "total": true, "multiplier": false, "fxRate": false}
   },
   "tokenConfig": {
     "ratio": 300,
