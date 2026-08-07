@@ -38,6 +38,32 @@ class PricingCatalogTests(unittest.TestCase):
             )
             self.assertIn("{count}", selected_line)
 
+    def test_help_copy_matches_catalog_and_unbounded_model_selection(self):
+        root = Path(__file__).resolve().parents[1]
+        locale_files = [
+            root / "web" / "locales" / "zh-CN.js",
+            root / "web" / "locales" / "zh-TW.js",
+            root / "web" / "locales" / "en.js",
+        ]
+        stale_fragments = (
+            '"filter.maxSelected"',
+            "At most three models can be selected",
+            "Only the three GPT-5.6 model prices are preconfigured",
+            "当前最多只支持选择 3 个模型",
+            "本项目默认只预设了 GPT-5.6",
+            "目前最多只支援選擇 3 個模型",
+            "本專案預設僅包含 GPT-5.6",
+        )
+        for path in locale_files:
+            source = path.read_text(encoding="utf-8")
+            self.assertIn('"help.comparison.note"', source)
+            for fragment in stale_fragments:
+                self.assertNotIn(fragment, source)
+
+        app_source = (root / "web" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("ONBOARDING_DEFAULT_MODEL_LIMIT = 3", app_source)
+        self.assertNotIn("MAX_CALCULATOR_MODELS", app_source)
+
     def test_model_management_ui_contract(self):
         root = Path(__file__).resolve().parents[1]
         app_source = (root / "web" / "app.js").read_text(encoding="utf-8")

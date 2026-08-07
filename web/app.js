@@ -13,7 +13,7 @@
     const ONBOARDING_VERSION = 1;
     const ONBOARDING_RESET_SESSION_KEY = 'token-cost-calc-onboarding-after-reset';
     const ONBOARDING_PROVIDER_LIMIT = 10;
-    const MAX_CALCULATOR_MODELS = 3;
+    const ONBOARDING_DEFAULT_MODEL_LIMIT = 3;
     let settingsModelPageSize = SETTINGS_MODEL_PAGE_SIZES[0];
     let settingsModelPage = 1;
     let settingsModelSearchQuery = '';
@@ -794,7 +794,7 @@
       if (!selected.length) selected = state.models.filter(model => providers.has(canonicalOnboardingProvider(model.providerId || model.provider)) && hasPrice(model));
       const selectedIds = new Set(selected.map(model => model.id));
       state.models.forEach(model => { model.enabled = selectedIds.has(model.id); });
-      const defaultIds = selected.slice(0, MAX_CALCULATOR_MODELS).map(model => model.id);
+      const defaultIds = selected.slice(0, ONBOARDING_DEFAULT_MODEL_LIMIT).map(model => model.id);
       state.comparisonSelectedModelIds = [...defaultIds];
       state.tokenSelectedModelIds = [...defaultIds];
       state.budgetSelectedModelIds = [...defaultIds];
