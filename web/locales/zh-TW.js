@@ -269,6 +269,7 @@ window.localeData["zh-TW"] = {
   "model.add.type.other": "其他",
   "model.add.provider": "廠商",
   "model.add.providerOther": "Others",
+  "about.repositoryLink": "\u9ede\u64ca\u9019\u88e1",
   "resetDialog.title": "\u91cd\u8a2d\u61c9\u7528\uff1f",
   "resetDialog.description": "\u9019\u6703\u522a\u9664\u672c\u5730\u5132\u5b58\u7684\u504f\u597d\u3001\u6a21\u578b\u548c\u81ea\u8a02\u50f9\u683c\u3002",
   "resetDialog.continue": "\u7e7c\u7e8c",

@@ -269,6 +269,7 @@ window.localeData["zh-CN"] = {
   "model.add.type.other": "其他",
   "model.add.provider": "厂商",
   "model.add.providerOther": "Others",
+  "about.repositoryLink": "\u70b9\u51fb\u8fd9\u91cc",
   "resetDialog.title": "\u91cd\u7f6e\u5e94\u7528\uff1f",
   "resetDialog.description": "\u8fd9\u5c06\u5220\u9664\u672c\u5730\u4fdd\u5b58\u7684\u504f\u597d\u3001\u6a21\u578b\u548c\u81ea\u5b9a\u4e49\u4ef7\u683c\u3002",
   "resetDialog.continue": "\u7ee7\u7eed",

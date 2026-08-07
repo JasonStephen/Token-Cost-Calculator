@@ -269,6 +269,7 @@ window.localeData["en"] = {
   "model.add.type.other": "Other",
   "model.add.provider": "Provider",
   "model.add.providerOther": "Others",
+  "about.repositoryLink": "Open link",
   "model.add.save": "Add model",
   "resetDialog.title": "Reset application?",
   "resetDialog.description": "This removes locally saved preferences, models, and custom prices.",

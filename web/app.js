@@ -12,6 +12,7 @@
     let settingsModelSearchQuery = '';
     let settingsStatusFilter = '';
     let settingsPricingFilter = '';
+    let sidebarWasNarrow = window.innerWidth <= 740;
     let settingsProviderSelection = new Set();
     const systemTheme = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
@@ -114,6 +115,16 @@
       $('sidebarBackdrop')?.addEventListener('click', () => applySidebarCollapsed(true));
     }
 
+    function setupSidebarViewportBehavior() {
+      if (document.body.dataset.sidebarViewportBound) return;
+      document.body.dataset.sidebarViewportBound = 'true';
+      window.addEventListener('resize', () => {
+        const isNarrow = window.innerWidth <= 740;
+        if (isNarrow && !sidebarWasNarrow) applySidebarCollapsed(true);
+        sidebarWasNarrow = isNarrow;
+      });
+    }
+
     function setupRuntimeShell() {
       setupModelIconFallback();
       const legacySync = $('syncPrices');
@@ -121,6 +132,7 @@
       document.querySelectorAll('.section-toggle,[data-toggle]').forEach(button => button.remove());
       document.querySelectorAll('main.app > .legend, main.app > .foot').forEach(element => { element.dataset.viewFooter = 'true'; });
       setupSidebar();
+      setupSidebarViewportBehavior();
     }
     setupRuntimeShell();
 
@@ -536,14 +548,14 @@
         image.replaceWith(fallback);
       }, true);
     }
-    function modelBadge(model, compact=false) {
+    function modelBadge(model, compact=false, tooltip=false) {
       const iconSources = providerIconSources(model);
       const provider = modelProvider(model);
       const fallback = escapeHtml((provider || model.name || '?').trim().charAt(0).toUpperCase() || '?');
       const visual = iconSources.primary
         ? '<img class="model-brand-icon' + (iconSources.monochrome ? ' is-monochrome' : '') + '" src="' + iconSources.primary + '"' + (iconSources.fallback ? ' data-local-source="' + iconSources.fallback + '"' : '') + ' alt="" loading="lazy" data-fallback="' + fallback + '">'
         : '<span class="model-brand-fallback" aria-hidden="true">' + fallback + '</span>';
-      return '<span class="model-badge' + (compact ? ' compact' : '') + '">' + visual +
+      return '<span class="model-badge' + (compact ? ' compact' : '') + (tooltip ? ' has-model-tooltip' : '') + '"' + (tooltip ? ' data-model-tooltip="' + escapeHtml(model.name) + '"' : '') + '>' + visual +
         '<span class="model-badge-text"><strong>' + escapeHtml(model.name) + '</strong>' +
         (provider && !compact ? '<small>' + escapeHtml(provider) + '</small>' : '') + '</span></span>';
     }
@@ -703,7 +715,7 @@
           ? '<button class="settings-model-delete" type="button" data-settings-remove="' + escapeHtml(model.id) + '" title="' + escapeHtml(t('action.deleteModel')) + '" aria-label="' + escapeHtml(t('action.deleteModel')) + '">×</button>'
           : '';
         return '<article class="settings-model-card' + (modelEnabled(model) ? '' : ' is-disabled') + '" data-provider="' + escapeHtml(settingsProviderLabel(model)) + '" data-category="' + escapeHtml(modelCategory(model)) + '" data-status="' + (modelEnabled(model) ? 'enabled' : 'disabled') + '">' +
-          '<header class="settings-model-card-header">' + modelBadge(model, true) + '</header>' +
+          '<header class="settings-model-card-header">' + modelBadge(model, true, true) + '</header>' +
           '<p class="model-card-provider">' + modelDetails(model) + '</p>' +
           '<p class="model-card-price-unit">' + escapeHtml(uiText('model.card.priceUnit', '$ / 1M tokens', '$ / 1M Token')) + '</p>' +
           '<dl class="model-price-grid"><div><dt>' + escapeHtml(uiText('model.card.cachePrice', 'Cache')) + '</dt><dd>' + escapeHtml(modelPriceDisplay(model.cache)) + '</dd></div><div><dt>' + escapeHtml(uiText('model.card.inputPrice', 'Input')) + '</dt><dd>' + escapeHtml(modelPriceDisplay(model.input)) + '</dd></div><div><dt>' + escapeHtml(uiText('model.card.outputPrice', 'Output')) + '</dt><dd>' + escapeHtml(modelPriceDisplay(model.output)) + '</dd></div></dl>' +
@@ -1317,7 +1329,7 @@
         $('showHostedModels').checked = state.showHostedModels;
         if ($('theme')) $('theme').value = state.theme;
         applyTheme(state.theme);
-        applySidebarCollapsed(state.sidebarCollapsed, false);
+        applySidebarCollapsed(state.sidebarCollapsed || window.innerWidth <= 740, false);
         setSettingsSection(state.settingsSection, false);
          setActiveView(state.activeView, false);
          update();
