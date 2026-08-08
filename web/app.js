@@ -1128,8 +1128,8 @@
     const dualMoney = (usd, fxRate) => '$' + usd.toLocaleString('zh-CN', {maximumFractionDigits:2}) + ' / ¥' + (usd * num(fxRate)).toLocaleString('zh-CN', {maximumFractionDigits:2});
     const tokens = (amountM, unit='M') => (num(amountM) / tokenUnitFactor(unit)).toLocaleString('zh-CN', {maximumFractionDigits:2}) + ' ' + unit + ' Token';
     function bind(id, key, converter=num) { $(id).addEventListener('input', e => { state[key] = converter(e.target.value); update(); }); }
-    function priceRow(label, key) { return `<div class="cell label-cell">${label}</div>${comparisonModels().map(m => `<div class="cell"><input class="price-input" data-model-key="${key}" data-model-id="${m.id}" type="number" min="0" step="0.001" value="${m[key]}"></div>`).join('')}`; }
-    function multipliedPriceRow(label, key) { return `<div class="cell label-cell">${label}</div>${comparisonModels().map(m => `<div class="cell"><div class="money">${dualMoney(num(m[key]) * num(comparisonValue(m, 'multiplier')), comparisonValue(m, 'fxRate'))}</div></div>`).join('')}`; }    function standardCost(model, totalM, usage) {
+    function priceRow(label, key) { return `<div class="cell label-cell">${comparisonLabel(label)}</div>${comparisonModels().map(m => `<div class="cell"><input class="price-input" data-model-key="${key}" data-model-id="${m.id}" type="number" min="0" step="0.001" value="${m[key]}"></div>`).join('')}`; }
+    function multipliedPriceRow(label, key) { return `<div class="cell label-cell">${comparisonLabel(label)}</div>${comparisonModels().map(m => `<div class="cell"><div class="money">${dualMoney(num(m[key]) * num(comparisonValue(m, 'multiplier')), comparisonValue(m, 'fxRate'))}</div></div>`).join('')}`; }    function standardCost(model, totalM, usage) {
       const ratio = num(usage.ratio);
       const hit = percent(usage.hit) / 100;
       const total = totalM * 1000000;
@@ -1139,6 +1139,7 @@
     }
     function cost(model, totalM, usage, multiplier) { return standardCost(model, totalM, usage) * num(multiplier); }
     function escapeHtml(text) { const node=document.createElement('span'); node.textContent=text; return node.innerHTML; }
+    function comparisonLabel(label) { return escapeHtml(label).replace(/\n/g, '<br>'); }
     function globMatch(value, pattern) {
       const escaped = String(pattern || '').replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.');
       return new RegExp('^' + escaped + '$', 'i').test(String(value || ''));
@@ -1615,7 +1616,7 @@
       const root = $('comparison'); const models = comparisonModels(); root.style.setProperty('--cols', models.length); renderComparisonFilter();
       const config = state.comparisonConfig;
       root.innerHTML = `
-        <div class="cell label-cell">${t('comparison.modelItem')}</div>${models.map(m=>`<div class="cell model-head" data-model-head="${m.id}">${userAddedModel(m) ? `<button class="close" data-remove="${m.id}" title="${t('action.deleteModel')}">×</button>` : ''}</div>`).join('')}
+        <div class="cell label-cell">${comparisonLabel(t('comparison.modelItem'))}</div>${models.map(m=>`<div class="cell model-head" data-model-head="${m.id}">${userAddedModel(m) ? `<button class="close" data-remove="${m.id}" title="${t('action.deleteModel')}">×</button>` : ''}</div>`).join('')}
         ${priceRow(t('comparison.cachePrice'), 'cache')}
         ${multipliedPriceRow(t('comparison.cachePriceAdjusted'), 'cache')}
         ${priceRow(t('comparison.inputPrice'), 'input')}
@@ -1623,8 +1624,8 @@
         ${priceRow(t('comparison.outputPrice'), 'output')}
         ${multipliedPriceRow(t('comparison.outputPriceAdjusted'), 'output')}
         ${fieldsFor('comparison').filter(field => !config.shared[field.key]).map(comparisonSettingRow).join('')}
-        <div class="cell label-cell">${t('comparison.actualCost')}</div>${models.map(m=>`<div class="cell"><div class="money big">${dualMoney(cost(m,comparisonValue(m,'total'),{ratio:comparisonValue(m,'ratio'), hit:comparisonValue(m,'hit')},comparisonValue(m,'multiplier')), comparisonValue(m,'fxRate'))}</div></div>`).join('')}
-        <div class="cell label-cell">${t('comparison.standardCost')}</div>${models.map(m=>`<div class="cell"><div class="money">${dualMoney(standardCost(m,comparisonValue(m,'total'),{ratio:comparisonValue(m,'ratio'), hit:comparisonValue(m,'hit')}), comparisonValue(m,'fxRate'))}</div></div>`).join('')}`;
+        <div class="cell label-cell">${comparisonLabel(t('comparison.actualCost'))}</div>${models.map(m=>`<div class="cell"><div class="money big">${dualMoney(cost(m,comparisonValue(m,'total'),{ratio:comparisonValue(m,'ratio'), hit:comparisonValue(m,'hit')},comparisonValue(m,'multiplier')), comparisonValue(m,'fxRate'))}</div></div>`).join('')}
+        <div class="cell label-cell">${comparisonLabel(t('comparison.standardCost'))}</div>${models.map(m=>`<div class="cell"><div class="money">${dualMoney(standardCost(m,comparisonValue(m,'total'),{ratio:comparisonValue(m,'ratio'), hit:comparisonValue(m,'hit')}), comparisonValue(m,'fxRate'))}</div></div>`).join('')}`;
       root.querySelectorAll('.model-head').forEach(el => {
         const model = state.models.find(item => item.id === el.dataset.modelHead);
         if (model) el.insertAdjacentHTML('afterbegin', modelBadge(model, true));
