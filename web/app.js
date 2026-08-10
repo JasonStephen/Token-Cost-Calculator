@@ -432,9 +432,19 @@
          onboardingFullCatalog:typeof saved.onboardingFullCatalog === 'boolean' ? saved.onboardingFullCatalog : Boolean(saved.showHostedModels),
          tokenRows:normalizeRows(saved.tokenRows, 'tokenRows', tokenConfig),
         budgetRows:normalizeRows(saved.budgetRows, 'budgetRows', budgetConfig),
-        comparisonSelectedModelIds,
+         comparisonSelectedModelIds,
         tokenSelectedModelIds:selectionFor('tokenSelectedModelIds'),
-        budgetSelectedModelIds:selectionFor('budgetSelectedModelIds')
+        budgetSelectedModelIds:selectionFor('budgetSelectedModelIds'),
+        multiplierCalc: (() => {
+          const calc = saved.multiplierCalc && typeof saved.multiplierCalc === 'object' ? saved.multiplierCalc : {};
+          return {
+            spent:valueOr(calc.spent, DEFAULT.multiplierCalc.spent),
+            earned:valueOr(calc.earned, DEFAULT.multiplierCalc.earned),
+            fxRate:valueOr(calc.fxRate, DEFAULT.multiplierCalc.fxRate),
+            spentCurrency:['USD', 'CNY'].includes(calc.spentCurrency) ? calc.spentCurrency : DEFAULT.multiplierCalc.spentCurrency,
+            earnedCurrency:['USD', 'CNY'].includes(calc.earnedCurrency) ? calc.earnedCurrency : DEFAULT.multiplierCalc.earnedCurrency
+          };
+        })()
       };
     }
     function loadLegacyState() {
@@ -1775,10 +1785,20 @@
       const ratio = num(state.knownRatio);
       $('inputShare').textContent = (ratio / (ratio + 1) * 100).toFixed(1) + '%';
       $('outputShare').textContent = (1 / (ratio + 1) * 100).toFixed(1) + '%';
+      const mfx = num(state.multiplierCalc.fxRate) || 1;
+      const toUsd = (amount, currency) => currency === 'CNY' ? num(amount) / mfx : num(amount);
+      const spentUsd = toUsd(state.multiplierCalc.spent, state.multiplierCalc.spentCurrency);
+      const earnedUsd = toUsd(state.multiplierCalc.earned, state.multiplierCalc.earnedCurrency);
+      $('multiplierOut').textContent = earnedUsd ? (spentUsd / earnedUsd).toLocaleString('zh-CN', {maximumFractionDigits:4}) : '--';
       if (renderModelComparison) { renderComparisonConfig(); renderComparison(); }
       renderScenario(); renderSettingsModelList(); save();
     }
     bindStructureInput('cache','cache'); bindStructureInput('input','input'); bindStructureInput('output','output'); bind('knownRatio','knownRatio'); bind('knownHit','knownHit',percent);
+    $('multSpent').addEventListener('input', event => { state.multiplierCalc.spent = num(event.target.value); update(); });
+    $('multEarned').addEventListener('input', event => { state.multiplierCalc.earned = num(event.target.value); update(); });
+    $('multFxRate').addEventListener('input', event => { state.multiplierCalc.fxRate = num(event.target.value); update(); });
+    $('multSpentCurrency').addEventListener('change', event => { state.multiplierCalc.spentCurrency = event.target.value; update(); });
+    $('multEarnedCurrency').addEventListener('change', event => { state.multiplierCalc.earnedCurrency = event.target.value; update(); });
     $('confirmModelDelete').onclick = () => {
       const id = pendingModelId;
       $('modelDeleteDialog').close();
@@ -2127,6 +2147,11 @@
         renderStructureUnit();
         $('knownRatio').value = state.knownRatio;
         $('knownHit').value = state.knownHit;
+        $('multSpent').value = state.multiplierCalc.spent;
+        $('multEarned').value = state.multiplierCalc.earned;
+        $('multFxRate').value = state.multiplierCalc.fxRate;
+        $('multSpentCurrency').value = state.multiplierCalc.spentCurrency;
+        $('multEarnedCurrency').value = state.multiplierCalc.earnedCurrency;
         $('comparisonUnit').value = state.comparisonUnit;
         $('tokenUnit').value = state.tokenUnit;
         $('budgetUnit').value = state.budgetUnit;

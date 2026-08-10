@@ -144,7 +144,15 @@
     .panel { border: 2px solid var(--line); background:var(--panel-bg); box-shadow: 5px 5px 0 var(--ink); }
     .method-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; }
     .method-card { padding:18px; }
-    .method-card h3 { margin:0 0 15px; font-size:16px; }
+    .method-card h3 { margin:0 0 15px; font-size:16px; display:flex; align-items:center; gap:8px; }
+    .method-badge { flex:0 0 auto; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; background:var(--ink); color:var(--paper); font-size:11px; font-weight:900; }
+    .money-field-head { display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:5px; min-height:26px; }
+    .money-field-head label { margin-bottom:0; }
+    .money-field-head select { flex:0 0 auto; min-width:0; border:2px solid var(--line); background:var(--paper); padding:3px 6px; font-family:inherit; font-weight:700; font-size:12px; }
+    .field-input { width:100%; box-sizing:border-box; padding:9px 8px; font-weight:700; }
+    .multiplier-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .multiplier-col { display:grid; gap:12px; align-content:start; }
+    .multiplier-col .metric { transform:none; background:var(--yellow); }
     .fields { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
     .field { min-width:0; }
     label { display:block; margin-bottom:5px; font-size:12px; font-weight:800; }

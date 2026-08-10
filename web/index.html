@@ -59,7 +59,7 @@
           <div class="tool-view-body">
           <div class="method-grid">
             <article class="panel method-card">
-              <h3 data-i18n="structure.knownDistribution">Known token distribution</h3>
+              <h3><span class="method-badge">1</span><span data-i18n="structure.knownDistribution">Known token distribution</span></h3>
               <div class="fields">
                 <div class="field"><label id="cacheLabel" for="cache">Cache hit (M tokens)</label><div class="unit-input"><input id="cache" type="number" min="0" step="0.1"><span id="cacheUnit">M</span></div></div>
                 <div class="field"><label id="inputLabel" for="input">Input outside cache (M tokens)</label><div class="unit-input"><input id="input" type="number" min="0" step="0.1"><span id="inputUnit">M</span></div></div>
@@ -69,10 +69,24 @@
               <p class="formula" data-i18n="structure.formula">Input = cache hits + input outside cache.</p>
             </article>
             <article class="panel method-card">
-              <h3 data-i18n="structure.knownUsage">Known usage characteristics</h3>
+              <h3><span class="method-badge">2</span><span data-i18n="structure.knownUsage">Known usage characteristics</span></h3>
               <div class="fields two"><div class="field"><label for="knownRatio" data-i18n="field.inputOutput">Input : output</label><div class="unit-input"><input id="knownRatio" type="number" min="0" step="0.1"><span>: 1</span></div></div><div class="field"><label for="knownHit" data-i18n="field.cacheHitRate">Cache hit rate</label><div class="unit-input"><input id="knownHit" type="number" min="0" max="100" step="0.1"><span>%</span></div></div></div>
               <div class="result-strip"><div class="metric"><div class="label" data-i18n="structure.inputShare">Input share of all tokens</div><strong id="inputShare">--</strong></div><div class="metric"><div class="label" data-i18n="structure.outputShare">Output share of all tokens</div><strong id="outputShare">--</strong></div></div>
               <p class="formula" data-i18n="structure.usageFormula">Set the known ratio and cache hit rate to inspect usage.</p>
+            </article>
+            <article class="panel method-card">
+              <h3><span class="method-badge">3</span><span data-i18n="structure.multiplier">Multiplier conversion</span></h3>
+              <div class="multiplier-grid">
+                <div class="multiplier-col">
+                  <div class="field"><div class="money-field-head"><label for="multSpent" data-i18n="structure.spent">Spent amount</label><select id="multSpentCurrency" data-i18n-aria-label="label.currency" aria-label="Currency"><option value="USD">$ USD</option><option value="CNY">¥ CNY</option></select></div><input id="multSpent" class="field-input" type="number" min="0" step="0.01"></div>
+                  <div class="field"><div class="money-field-head"><label for="multEarned" data-i18n="structure.earned">Earned amount</label><select id="multEarnedCurrency" data-i18n-aria-label="label.currency" aria-label="Currency"><option value="USD">$ USD</option><option value="CNY">¥ CNY</option></select></div><input id="multEarned" class="field-input" type="number" min="0" step="0.01"></div>
+                </div>
+                <div class="multiplier-col">
+                  <div class="field"><div class="money-field-head"><label for="multFxRate" data-i18n="field.usdCnyRate">USD to CNY</label></div><div class="unit-input"><input id="multFxRate" class="field-input" type="number" min="0" step="0.01"><span>¥/$</span></div></div>
+                  <div class="metric"><div class="label" data-i18n="structure.multiplierResult">Multiplier (spent ÷ earned)</div><strong id="multiplierOut">--</strong></div>
+                </div>
+              </div>
+              <p class="formula" data-i18n="structure.multiplierFormula">Multiplier = spent ÷ earned, after converting both to the same currency.</p>
             </article>
           </div>
           </div>
