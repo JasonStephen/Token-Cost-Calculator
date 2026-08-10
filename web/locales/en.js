@@ -192,7 +192,7 @@ window.localeData["en"] = {
   "field.totalTokensUnit": "Total tokens ({unit})",
   "field.expenseMultiplier": "Expense multiplier",
   "field.usdCnyRate": "USD to CNY",
-  "field.budget": "Budget (current currency)",
+  "field.budget": "Budget ({symbol})",
   "action.syncPricing": "Sync models",
   "pricing.syncing": "Syncing models...",
   "pricing.synced": "Synced {count} models",

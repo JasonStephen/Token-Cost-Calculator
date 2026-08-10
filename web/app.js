@@ -282,6 +282,7 @@
       return preference === 'auto' ? automaticTokenUnit(scenarioTokenValues(type)) : preference;
     }
     function scenarioFieldLabel(type, field) {
+      if (field.key === 'budget') return t('field.budget', {symbol: state.currency === 'CNY' ? '\u00a5' : '$'});
       return (type === 'comparison' || type === 'tokenRows') && field.key === 'total' ? t('field.totalTokens') : field.label;
     }
     function scenarioFieldDisplayValue(type, field, value) {
@@ -1128,7 +1129,7 @@
     const dualMoney = (usd, fxRate) => '$' + usd.toLocaleString('zh-CN', {maximumFractionDigits:2}) + ' / ¥' + (usd * num(fxRate)).toLocaleString('zh-CN', {maximumFractionDigits:2});
     const tokens = (amountM, unit='M') => (num(amountM) / tokenUnitFactor(unit)).toLocaleString('zh-CN', {maximumFractionDigits:2}) + ' ' + unit + ' Token';
     function bind(id, key, converter=num) { $(id).addEventListener('input', e => { state[key] = converter(e.target.value); update(); }); }
-    function priceRow(label, key) { return `<div class="cell label-cell">${comparisonLabel(label)}</div>${comparisonModels().map(m => `<div class="cell"><input class="price-input" data-model-key="${key}" data-model-id="${m.id}" type="number" min="0" step="0.001" value="${m[key]}"></div>`).join('')}`; }
+    function priceRow(label, key) { return `<div class="cell label-cell">${comparisonLabel(label)}<em class="cell-unit">${comparisonLabel(t('model.customPricing.unit'))}</em></div>${comparisonModels().map(m => `<div class="cell"><input class="price-input" data-model-key="${key}" data-model-id="${m.id}" type="number" min="0" step="0.001" value="${m[key]}"></div>`).join('')}`; }
     function multipliedPriceRow(label, key) { return `<div class="cell label-cell">${comparisonLabel(label)}</div>${comparisonModels().map(m => `<div class="cell"><div class="money">${dualMoney(num(m[key]) * num(comparisonValue(m, 'multiplier')), comparisonValue(m, 'fxRate'))}</div></div>`).join('')}`; }    function standardCost(model, totalM, usage) {
       const ratio = num(usage.ratio);
       const hit = percent(usage.hit) / 100;

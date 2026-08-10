@@ -116,7 +116,7 @@ window.localeData["zh-CN"] = {
   "field.totalTokensUnit": "总 Token ({unit})",
   "field.expenseMultiplier": "开支倍率",
   "field.usdCnyRate": "美元兑人民币",
-  "field.budget": "预算（当前币种）",
+  "field.budget": "预算（{symbol}）",
   "action.syncPricing": "同步模型",
   "pricing.syncing": "正在同步模型...",
   "pricing.synced": "已同步 {count} 个模型",

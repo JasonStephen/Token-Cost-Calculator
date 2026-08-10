@@ -28,3 +28,6 @@ dist/
 .idea/
 .DS_Store
 Thumbs.db
+
+# opencode workspace memory bank
+.opencode-memory/
