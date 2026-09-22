@@ -208,8 +208,16 @@ class PricingCatalogTests(unittest.TestCase):
         self.assertIn('data-save-favorite="tokenRows"', app_source)
         self.assertIn('data-save-favorite="budgetRows"', app_source)
         self.assertIn('data-favorite-insert', app_source)
+        self.assertIn('data-favorite-rename', app_source)
         self.assertIn('data-favorite-delete', app_source)
         self.assertIn('function insertFavorite(type, id)', app_source)
+        self.assertIn('function ensureFavoriteRenameDialog()', app_source)
+        self.assertIn('function requestFavoriteRename(type, id)', app_source)
+        self.assertIn('function executeFavoriteRename()', app_source)
+        self.assertIn('Array.from(value).length > 40', app_source)
+        self.assertIn("favorite.title = value", app_source)
+        self.assertIn("favorites.renameRequired", app_source)
+        self.assertIn("favorites.renameTooLong", app_source)
         self.assertIn('config.shared[field.key] = false', app_source)
         self.assertIn('tokenFavorites', app_source)
         self.assertIn('budgetFavorites', app_source)
@@ -226,8 +234,13 @@ class PricingCatalogTests(unittest.TestCase):
         self.assertIn('data-favorite-select', app_source)
         self.assertIn('favorite-detail-window', css_source)
         self.assertIn('favorite-bulk-delete', css_source)
+        self.assertIn('.favorite-rename', css_source)
+        self.assertIn('.favorite-rename-field', css_source)
         self.assertIn('function ensureFavoriteDeleteDialog()', app_source)
         self.assertNotIn("confirm(t('favorites.deleteConfirm'", app_source)
+        for locale in ('zh-CN', 'zh-TW', 'en'):
+            self.assertIn('"favorites.renameTitle"', (root / "web" / "locales" / f"{locale}.js").read_text(encoding="utf-8"))
+            self.assertIn('"favorites.renameTooLong"', (root / "web" / "locales" / f"{locale}.js").read_text(encoding="utf-8"))
 
     def test_batch_launcher_keeps_devtools_manual(self):
         root = Path(__file__).resolve().parents[1]

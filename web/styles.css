@@ -125,10 +125,13 @@
     .favorite-insert:hover, .favorite-insert:focus-visible { background:var(--yellow); outline:none; }
     .favorite-insert span { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; font-weight:900; }
     .favorite-insert small { color:var(--muted); font-size:12px; }
-    .favorite-delete, .favorite-bulk-delete { flex:0 0 38px; align-self:stretch; display:grid; place-items:center; border:0; background:transparent; color:var(--muted); font-size:16px; line-height:1; }
-    .favorite-delete { border-left:2px solid var(--soft-line); }
+    .favorite-rename, .favorite-delete, .favorite-bulk-delete { flex:0 0 38px; align-self:stretch; display:grid; place-items:center; border:0; background:transparent; color:var(--muted); font-family:Arial,sans-serif; font-size:16px; line-height:1; }
+    .favorite-rename, .favorite-delete { border-left:2px solid var(--soft-line); }
+    .favorite-rename:hover, .favorite-rename:focus-visible { background:var(--blue); color:var(--accent-ink); outline:none; }
     .favorite-delete:hover, .favorite-delete:focus-visible, .favorite-bulk-delete:hover, .favorite-bulk-delete:focus-visible { background:var(--pink); color:var(--ink); outline:none; }
-    .favorite-delete:active, .favorite-bulk-delete:active { transform:none !important; box-shadow:none !important; background:var(--pink); color:var(--ink); }
+    .favorite-rename:active, .favorite-delete:active, .favorite-bulk-delete:active { transform:none !important; box-shadow:none !important; }
+    .favorite-rename:active { background:var(--blue); color:var(--accent-ink); }
+    .favorite-delete:active, .favorite-bulk-delete:active { background:var(--pink); color:var(--ink); }
     .favorite-bulk-delete { flex:0 0 38px; margin-left:auto; border:2px solid var(--soft-line); font-size:17px; }
     .favorite-bulk-delete:not(:disabled) { background:var(--pink); color:var(--ink); }
     .favorite-bulk-delete:disabled { visibility:hidden; }
@@ -137,6 +140,13 @@
     .favorite-detail-window strong { display:block; font-size:15px; }
     .favorite-detail-window pre { margin:12px 0 0; color:var(--muted); font-family:inherit; font-size:12px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; }
     .favorites-empty { margin:0 4px; color:var(--muted); font-size:12px; line-height:1.4; }
+    .favorite-rename-field { display:grid; gap:6px; margin-top:16px; }
+    .favorite-rename-field span { font-size:13px; font-weight:800; }
+    .favorite-rename-field input { width:100%; padding:10px 11px; border:2px solid var(--line); background:var(--white); }
+    .favorite-rename-field input:focus { outline:2px solid var(--yellow); outline-offset:2px; }
+    .favorite-rename-field input[aria-invalid="true"] { border-color:var(--status-error); }
+    .favorite-rename-error { color:var(--status-error); font-size:12px; font-weight:800; line-height:1.4; }
+    .favorite-rename-save { min-width:80px; }
     .sidebar-footer { margin-top:auto; padding-top:16px; border-top:2px dashed var(--soft-line); }
     .sidebar-settings { color:var(--ink); }
     .sidebar-settings.is-active { border-left-color:var(--line); background:var(--yellow); color:var(--accent-ink); }

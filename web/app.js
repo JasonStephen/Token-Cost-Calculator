@@ -28,6 +28,7 @@
     let modelSelectionPanel = 'select';
     let pendingModelSwitch = null;
     let pendingFavoriteDelete = null;
+    let pendingFavoriteRename = null;
     let onboardingStep = 0;
     let onboardingSubmitting = false;
     let onboardingTransitioning = false;
@@ -1653,7 +1654,7 @@
         const items = state?.[favoriteKey(type)] || [];
         root.innerHTML = items.length ? items.map(favorite => {
           const details = favoriteDetails(type, favorite);
-          return '<div class="favorite-item" data-favorite-id="' + escapeHtml(favorite.id) + '"><input class="favorite-select" type="checkbox" data-favorite-select data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.select') + ': ' + favorite.title) + '"><button class="favorite-insert" type="button" data-favorite-insert="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(favorite.title + ': ' + details) + '"><span>' + escapeHtml(favorite.title) + '</span><small>' + escapeHtml(t('favorites.insert')) + '</small></button><button class="favorite-delete" type="button" data-favorite-delete="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.delete')) + '" title="' + escapeHtml(t('favorites.delete')) + '">×</button></div>';
+          return '<div class="favorite-item" data-favorite-id="' + escapeHtml(favorite.id) + '"><input class="favorite-select" type="checkbox" data-favorite-select data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.select') + ': ' + favorite.title) + '"><button class="favorite-insert" type="button" data-favorite-insert="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(favorite.title + ': ' + details) + '"><span>' + escapeHtml(favorite.title) + '</span><small>' + escapeHtml(t('favorites.insert')) + '</small></button><button class="favorite-rename" type="button" data-favorite-rename="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.rename') + ': ' + favorite.title) + '" title="' + escapeHtml(t('favorites.rename')) + '">✎</button><button class="favorite-delete" type="button" data-favorite-delete="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.delete')) + '" title="' + escapeHtml(t('favorites.delete')) + '">×</button></div>';
         }).join('') : '<p class="favorites-empty">' + escapeHtml(t('favorites.empty')) + '</p>';
         hideFavoriteDetails(type);
         bindFavoriteItems(type, root);
@@ -1733,6 +1734,95 @@
     }
     function deleteFavorite(type, id) {
       requestFavoriteDelete(type, [id]);
+    }
+    function ensureFavoriteRenameDialog() {
+      let dialog = $('favoriteRenameDialog');
+      if (dialog) return dialog;
+      dialog = document.createElement('dialog');
+      dialog.className = 'confirm-dialog favorite-rename-dialog';
+      dialog.id = 'favoriteRenameDialog';
+      dialog.innerHTML = '<form method="dialog" novalidate><h3 id="favoriteRenameTitle"></h3><label class="favorite-rename-field" for="favoriteRenameInput"><span id="favoriteRenameLabel"></span><input id="favoriteRenameInput" type="text" autocomplete="off" aria-describedby="favoriteRenameError" required><small id="favoriteRenameError" class="favorite-rename-error" hidden></small></label><div class="confirm-dialog-actions"><button class="text-btn" id="cancelFavoriteRename" value="cancel" type="button"></button><button class="add-btn favorite-rename-save" id="saveFavoriteRename" type="submit"></button></div></form>';
+      document.body.appendChild(dialog);
+      dialog.querySelector('#favoriteRenameInput').addEventListener('input', () => {
+        const input = dialog.querySelector('#favoriteRenameInput');
+        const value = input.value.trim();
+        if (Array.from(value).length > 40) showFavoriteRenameError(dialog, t('favorites.renameTooLong'));
+        else if (value) clearFavoriteRenameError(dialog);
+      });
+      dialog.querySelector('#cancelFavoriteRename').addEventListener('click', () => dialog.close());
+      dialog.querySelector('form').addEventListener('submit', event => {
+        event.preventDefault();
+        executeFavoriteRename();
+      });
+      dialog.addEventListener('close', () => {
+        pendingFavoriteRename = null;
+        clearFavoriteRenameError(dialog);
+      });
+      return dialog;
+    }
+    function clearFavoriteRenameError(dialog) {
+      const input = dialog?.querySelector('#favoriteRenameInput');
+      const error = dialog?.querySelector('#favoriteRenameError');
+      if (input) input.removeAttribute('aria-invalid');
+      if (error) {
+        error.textContent = '';
+        error.hidden = true;
+      }
+    }
+    function showFavoriteRenameError(dialog, message) {
+      const input = dialog?.querySelector('#favoriteRenameInput');
+      const error = dialog?.querySelector('#favoriteRenameError');
+      if (input) {
+        input.setAttribute('aria-invalid', 'true');
+        input.focus();
+      }
+      if (error) {
+        error.textContent = message;
+        error.hidden = false;
+      }
+    }
+    function requestFavoriteRename(type, id) {
+      const favorite = (state[favoriteKey(type)] || []).find(item => item.id === id);
+      if (!favorite) return;
+      const dialog = ensureFavoriteRenameDialog();
+      const input = dialog.querySelector('#favoriteRenameInput');
+      const title = dialog.querySelector('#favoriteRenameTitle');
+      const label = dialog.querySelector('#favoriteRenameLabel');
+      const cancel = dialog.querySelector('#cancelFavoriteRename');
+      const saveButton = dialog.querySelector('#saveFavoriteRename');
+      pendingFavoriteRename = {type, id};
+      if (title) title.textContent = t('favorites.renameTitle');
+      if (label) label.textContent = t('favorites.renameLabel');
+      if (input) {
+        input.value = Array.from(String(favorite.title || '')).slice(0, 40).join('');
+        input.placeholder = t('favorites.renamePlaceholder');
+        input.setAttribute('aria-label', t('favorites.renameLabel'));
+      }
+      if (cancel) cancel.textContent = t('action.cancel');
+      if (saveButton) saveButton.textContent = t('favorites.renameSave');
+      clearFavoriteRenameError(dialog);
+      dialog.showModal();
+      input?.focus();
+      input?.select();
+    }
+    function executeFavoriteRename() {
+      if (!pendingFavoriteRename) return;
+      const dialog = ensureFavoriteRenameDialog();
+      const input = dialog.querySelector('#favoriteRenameInput');
+      const value = String(input?.value || '').trim();
+      if (!value) return showFavoriteRenameError(dialog, t('favorites.renameRequired'));
+      if (Array.from(value).length > 40) return showFavoriteRenameError(dialog, t('favorites.renameTooLong'));
+      const {type, id} = pendingFavoriteRename;
+      const favorite = (state[favoriteKey(type)] || []).find(item => item.id === id);
+      if (!favorite) {
+        dialog.close();
+        return;
+      }
+      favorite.title = value;
+      dialog.close();
+      pendingFavoriteRename = null;
+      renderFavorites();
+      save();
     }
     function modelSelectionGroups() {
       const groups = new Map();
@@ -2483,6 +2573,8 @@
       drawer.addEventListener('click', event => {
         const insert = event.target.closest('[data-favorite-insert]');
         if (insert) return insertFavorite(insert.dataset.favoriteInsert, insert.dataset.favoriteId);
+        const rename = event.target.closest('[data-favorite-rename]');
+        if (rename) return requestFavoriteRename(rename.dataset.favoriteRename, rename.dataset.favoriteId);
         const remove = event.target.closest('[data-favorite-delete]');
         if (remove) deleteFavorite(remove.dataset.favoriteDelete, remove.dataset.favoriteId);
       });
