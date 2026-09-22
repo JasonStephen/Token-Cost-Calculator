@@ -1,11 +1,9 @@
 {
-  "stateVersion": 11,
+  "stateVersion": 10,
   "currency": "CNY",
   "language": "zh-CN",
   "theme": "system",
   "activeView": "home",
-  "cardsGridColumns": 3,
-  "cards": [],
   "sidebarCollapsed": false,
   "settingsSection": "general",
   "showHostedModels": false,

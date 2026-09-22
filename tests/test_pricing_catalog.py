@@ -184,42 +184,6 @@ class PricingCatalogTests(unittest.TestCase):
         self.assertNotIn("modelSelectionDraft.size > 1", app_source)
         self.assertNotIn("filter.maxSelected", app_source)
 
-    def test_saved_cards_ui_contract(self):
-        root = Path(__file__).resolve().parents[1]
-        app_source = (root / "web" / "app.js").read_text(encoding="utf-8")
-        html_source = (root / "web" / "index.html").read_text(encoding="utf-8")
-        css_source = (root / "web" / "styles.css").read_text(encoding="utf-8")
-        self.assertIn("'cards'", app_source)
-        self.assertIn('data-view-section="cards"', html_source)
-        self.assertIn('class="home-cards-arrow"', html_source)
-        self.assertIn('id="cardsGrid"', html_source)
-        self.assertIn('id="cardsColumns"', html_source)
-        self.assertIn('id="cardAddDialog"', html_source)
-        self.assertIn('id="cardEditDialog"', html_source)
-        self.assertIn('data-card-edit', app_source)
-        self.assertIn('openCardEditDialog', app_source)
-        self.assertNotIn('data-view-target="cards"><span aria-hidden="true">◆</span>', html_source)
-        self.assertNotIn('data-card-title=', app_source)
-        for card_type in ("multiplier", "comparison", "tokenCost", "budget"):
-            self.assertIn(f'data-card-template="{card_type}"', html_source)
-        self.assertIn("cards.type.' + card.type", app_source)
-        self.assertIn('data-save-card="multiplier"', html_source)
-        self.assertIn('data-save-card="comparison"', html_source)
-        self.assertIn('data-save-card="tokenCost"', html_source)
-        self.assertIn('data-save-card="budget"', html_source)
-        self.assertIn('draggable="true"', app_source)
-        self.assertIn('data-card-up', app_source)
-        self.assertIn('data-card-down', app_source)
-        self.assertIn('cardsGridColumns', app_source)
-        self.assertIn('stateVersion:11', app_source)
-        self.assertIn('"cards": []', (root / "config" / "defaults.json").read_text(encoding="utf-8"))
-        self.assertIn(".cards-grid { display:grid; grid-template-columns:repeat(var(--cards-columns, 3)", css_source)
-        for path in (root / "web" / "locales" / "zh-CN.js", root / "web" / "locales" / "zh-TW.js", root / "web" / "locales" / "en.js"):
-            source = path.read_text(encoding="utf-8")
-            self.assertIn('"cards.title"', source)
-            self.assertIn('"cards.saveCurrent"', source)
-            self.assertIn('"cards.modelUnavailable"', source)
-
     def test_batch_launcher_keeps_devtools_manual(self):
         root = Path(__file__).resolve().parents[1]
         app_source = (root / "app.py").read_text(encoding="utf-8")

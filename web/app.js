@@ -4,8 +4,7 @@
     const PRESET_ORDER = ['GPT-5.6 Sol', 'GPT-5.6 Terra', 'GPT-5.6 Luna'];
     const $ = id => document.getElementById(id);
     const HELP_POINT_KEYS = ['point1', 'point2', 'point3'];
-    const VIEW_IDS = ['home', 'structure', 'comparison', 'tokenCost', 'budget', 'cards', 'settings'];
-    const CARD_TYPES = ['multiplier', 'comparison', 'tokenCost', 'budget'];
+    const VIEW_IDS = ['home', 'structure', 'comparison', 'tokenCost', 'budget', 'settings'];
     const THEME_IDS = ['system', 'light', 'dark'];
     const SETTINGS_MODEL_PAGE_SIZES = [12, 24];
     // Keep the onboarding contract in the persisted state.  This is deliberately
@@ -324,14 +323,14 @@
       const oldHit = percent(valueOr(saved.estimateHit, DEFAULT.tokenConfig.hit));
       const oldTokenRows = Array.isArray(saved.tokenRows) ? saved.tokenRows : (Array.isArray(saved.scenarios) ? saved.scenarios : []);
       const oldBudgetRows = Array.isArray(saved.budgetRows) ? saved.budgetRows : (Array.isArray(saved.scenarios) ? saved.scenarios : []);
-      if (![3, 4, 5, 6, 7, 8, 9, 10, 11].includes(saved.stateVersion)) {
+      if (![3, 4, 5, 6, 7, 8, 9, 10].includes(saved.stateVersion)) {
         const firstToken = oldTokenRows[0] || {};
         const firstBudget = oldBudgetRows[0] || {};
         saved.tokenConfig = {ratio:oldRatio, hit:oldHit, total:valueOr(firstToken.total, 100), multiplier:valueOr(firstToken.multiplier, .04), shared:{ratio:true, hit:true, total:true, multiplier:true}};
         saved.budgetConfig = {ratio:oldRatio, hit:oldHit, budget:valueOr(firstBudget.budget, 100), multiplier:valueOr(firstBudget.multiplier, .04), shared:{ratio:true, hit:true, budget:true, multiplier:true}};
         saved.tokenRows = oldTokenRows.map(row => ({ratio:oldRatio, hit:oldHit, total:valueOr(row.total, 100), multiplier:valueOr(row.multiplier, .04)}));
         saved.budgetRows = oldBudgetRows.map(row => ({ratio:oldRatio, hit:oldHit, budget:valueOr(row.budget, 100), multiplier:valueOr(row.multiplier, .04)}));
-        saved.stateVersion = 11;
+        saved.stateVersion = 10;
       }
       saved.comparisonMultiplier = valueOr(saved.comparisonMultiplier, valueOr(saved.multiplier, DEFAULT.comparisonMultiplier));
       saved.comparisonFxRate = valueOr(saved.comparisonFxRate, valueOr(saved.fxRate, DEFAULT.comparisonFxRate));
@@ -344,6 +343,7 @@
         shared:DEFAULT.comparisonConfig.shared
       };
       const comparisonConfig = normalizeConfig(saved.comparisonConfig, comparisonFallback, 'comparison');
+      saved.stateVersion = 10;
       const usedIds = new Set();
       const bundledDefaults = new Map(DEFAULT.models.map(model => [String(model.id || model.name || '').toLowerCase(), model]));
       const storedModels = (Array.isArray(saved.models) && saved.models.length ? saved.models : clone(DEFAULT.models)).map(model => {
@@ -406,22 +406,6 @@
         const key = String(value || '');
         return aliases.get(key) || aliasesByLowerCase.get(key.toLowerCase()) || (models.some(model => model.id === key) ? key : null);
       };
-      const rawCards = Array.isArray(saved.cards) ? saved.cards : [];
-      const cards = rawCards.map((card, index) => {
-        const type = CARD_TYPES.includes(card && card.type) ? card.type : 'multiplier';
-        const selected = Array.isArray(card && card.selectedModelIds)
-          ? [...new Set(card.selectedModelIds.map(resolveModelId).filter(Boolean))]
-          : [];
-        return {
-          id:String(card && card.id || 'card-' + Date.now() + '-' + index),
-          type,
-          title:String(card && card.title || ''),
-          customTitle:Boolean(card && card.customTitle),
-          config:card && typeof card.config === 'object' ? clone(card.config) : {},
-          selectedModelIds:selected,
-          order:Number.isFinite(Number(card && card.order)) ? Number(card.order) : index
-        };
-      }).sort((a, b) => a.order - b.order).map((card, index) => ({...card, order:index}));
       const selectionFor = key => {
         const source = Array.isArray(saved[key]) ? saved[key] : legacySelected;
         return [...new Set(source.map(resolveModelId).filter(id => id && models.some(model => model.id === id && modelEnabled(model))))];
@@ -435,12 +419,12 @@
          ? [...new Set(saved.onboardingProviders.map(normalizedProvider).filter(Boolean))]
          : [];
        return {
-          ...DEFAULT, ...saved, models, comparisonConfig, tokenConfig, budgetConfig, cards, activeView, theme,
+         ...DEFAULT, ...saved, models, comparisonConfig, tokenConfig, budgetConfig, activeView, theme,
         structureUnit:normalizeTokenUnit(saved.structureUnit, normalizeTokenUnit(DEFAULT.structureUnit)),
         comparisonUnit:normalizeTokenUnit(saved.comparisonUnit, normalizeTokenUnit(DEFAULT.comparisonUnit)),
         tokenUnit:normalizeTokenUnit(saved.tokenUnit, normalizeTokenUnit(DEFAULT.tokenUnit)),
         budgetUnit:normalizeTokenUnit(saved.budgetUnit, normalizeTokenUnit(DEFAULT.budgetUnit)),
-          sidebarCollapsed:Boolean(saved.sidebarCollapsed), showHostedModels:Boolean(saved.showHostedModels), settingsSection:['general', 'models', 'about', 'reset'].includes(saved.settingsSection) ? saved.settingsSection : 'general', cardsGridColumns:Math.min(6, Math.max(1, Number(saved.cardsGridColumns) || 3)), stateVersion:11,
+         sidebarCollapsed:Boolean(saved.sidebarCollapsed), showHostedModels:Boolean(saved.showHostedModels), settingsSection:['general', 'models', 'about', 'reset'].includes(saved.settingsSection) ? saved.settingsSection : 'general', stateVersion:10,
          onboardingVersion:Number.isFinite(Number(saved.onboardingVersion)) ? Number(saved.onboardingVersion) : 0,
          onboardingStatus:saved.onboardingStatus === 'complete' ? 'complete' : 'pending',
          onboardingProviders,
@@ -473,8 +457,6 @@
     let pendingModelId = null;
     let pendingModelConfigId = null;
     let pendingModelEditId = null;
-    let pendingCardEditId = null;
-    let pendingCardEditDraft = null;
     function userAddedModel(model) { return Boolean(model && model.source === 'manual'); }
     function save() {
       if (isResetting) return;
@@ -561,7 +543,7 @@
       });
       document.querySelectorAll('[data-view-footer]').forEach(element => { element.hidden = activeView === 'home' || activeView === 'settings'; });
       document.querySelector('.sidebar')?.classList.toggle('is-settings-mode', activeView === 'settings');
-      document.querySelector('.app-shell')?.classList.toggle('tool-view-active', ['structure', 'comparison', 'tokenCost', 'budget', 'cards'].includes(activeView));
+      document.querySelector('.app-shell')?.classList.toggle('tool-view-active', ['structure', 'comparison', 'tokenCost', 'budget'].includes(activeView));
       document.querySelector('.app-shell')?.classList.toggle('settings-models-active', activeView === 'settings' && state?.settingsSection === 'models');
       document.querySelector('.app-shell')?.classList.toggle('settings-about-active', activeView === 'settings' && state?.settingsSection === 'about');
       if (state) {
@@ -1801,152 +1783,6 @@
       bindScenarioRows(root);
     }
     function renderScenario() { renderModelFilter('tokenRows'); renderModelFilter('budgetRows'); renderScenarioConfig('tokenRows'); renderScenarioConfig('budgetRows'); renderTokenRows(); renderBudgetRows(); }
-    let draggedCardId = null;
-    function cardTitle(card) {
-      if (card.customTitle && card.title) return card.title;
-      const keys = {multiplier:'section.structure.title', comparison:'section.comparison.title', tokenCost:'section.tokenCost.title', budget:'section.budget.title'};
-      return card.title || uiText(keys[card.type] || 'cards.title', 'Saved card', '收藏卡片');
-    }
-    function cardConfigFromCurrent(type) {
-      if (type === 'multiplier') return clone(state.multiplierCalc);
-      if (type === 'comparison') return {config:clone(state.comparisonConfig), unit:state.comparisonUnit};
-      if (type === 'tokenCost') return {config:clone(state.tokenConfig), rows:clone(state.tokenRows), unit:state.tokenUnit};
-      return {config:clone(state.budgetConfig), rows:clone(state.budgetRows), unit:state.budgetUnit, currency:state.currency};
-    }
-    function newSavedCard(type) {
-      const selected = type === 'comparison' ? state.comparisonSelectedModelIds : type === 'tokenCost' ? state.tokenSelectedModelIds : type === 'budget' ? state.budgetSelectedModelIds : [];
-      return {id:'card-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7), type, title:'', customTitle:false, config:cardConfigFromCurrent(type), selectedModelIds:[...(selected || [])], order:state.cards.length};
-    }
-    function cardModels(card) {
-      return (card.selectedModelIds || []).map(id => state.models.find(model => model.id === id)).filter(Boolean);
-    }
-    function cardModelWarning(card) {
-      const unavailable = (card.selectedModelIds || []).filter(id => {
-        const model = state.models.find(item => item.id === id);
-        return !model || !modelEnabled(model) || !hasPrice(model);
-      });
-      return unavailable.length ? '<p class="saved-card-warning" role="status">⚠ ' + escapeHtml(uiText('cards.modelUnavailable', 'Some selected models are unavailable.', '部分所选模型不可用。')) + '</p>' : '';
-    }
-    function cardModelPicker(card) {
-      if (card.type === 'multiplier') return '';
-      return '<fieldset class="saved-card-models"><legend>' + escapeHtml(uiText('cards.models', 'Models', '模型')) + '</legend><div class="saved-card-model-options">' + enabledModels().map(model => '<label><input type="checkbox" data-card-model="' + escapeHtml(card.id) + '" data-model-id="' + escapeHtml(model.id) + '"' + (card.selectedModelIds.includes(model.id) ? ' checked' : '') + '><span>' + escapeHtml(model.name) + '</span></label>').join('') + '</div></fieldset>';
-    }
-    function cardInput(card, key, value, unit='') {
-      return '<label class="saved-card-field"><span>' + escapeHtml(uiText('cards.field.' + key, key, key)) + '</span><span class="unit-input"><input type="number" min="0" step="0.01" data-card-field="' + escapeHtml(key) + '" data-card-id="' + escapeHtml(card.id) + '" value="' + escapeHtml(String(value ?? '')) + '"><span>' + escapeHtml(unit) + '</span></span></label>';
-    }
-    function cardCurrencySelect(card, key, value) {
-      return '<label class="saved-card-field"><span>' + escapeHtml(uiText('cards.field.' + key, key, key)) + '</span><select data-card-currency="' + escapeHtml(key) + '" data-card-id="' + escapeHtml(card.id) + '"><option value="USD"' + (value === 'USD' ? ' selected' : '') + '>USD $</option><option value="CNY"' + (value === 'CNY' ? ' selected' : '') + '>CNY ¥</option></select></label>';
-    }
-    function renderSavedCardBody(card) {
-      const c = card.config || {};
-      if (card.type === 'multiplier') {
-        const toUsd = (amount, currency) => currency === 'CNY' ? num(amount) / (num(c.fxRate) || 1) : num(amount);
-        const result = toUsd(c.earned, c.earnedCurrency) ? toUsd(c.spent, c.spentCurrency) / toUsd(c.earned, c.earnedCurrency) : 0;
-        return '<div class="saved-card-fields">' + cardInput(card, 'spent', c.spent, c.spentCurrency || 'USD') + cardInput(card, 'earned', c.earned, c.earnedCurrency || 'CNY') + cardCurrencySelect(card, 'spentCurrency', c.spentCurrency || 'USD') + cardCurrencySelect(card, 'earnedCurrency', c.earnedCurrency || 'CNY') + cardInput(card, 'fxRate', c.fxRate, '¥/$') + '</div><div class="saved-card-result"><span>' + escapeHtml(uiText('cards.result.multiplier', 'Multiplier', '倍率')) + '</span><strong>' + (result ? result.toLocaleString('zh-CN', {maximumFractionDigits:4}) : '--') + '</strong></div>';
-      }
-      const models = cardModels(card);
-      const usage = {ratio:num(c.config?.ratio), hit:percent(c.config?.hit)};
-      const multiplier = num(c.config?.multiplier);
-      if (card.type === 'comparison') {
-        const total = num(c.config?.total);
-        return '<div class="saved-card-fields">' + cardInput(card, 'ratio', c.config?.ratio, ': 1') + cardInput(card, 'hit', c.config?.hit, '%') + cardInput(card, 'total', c.config?.total, c.unit || 'M') + cardInput(card, 'multiplier', c.config?.multiplier, 'x') + cardInput(card, 'fxRate', c.config?.fxRate, '¥/$') + '</div>' + cardModelPicker(card) + cardModelWarning(card) + '<div class="saved-card-results">' + (models.length ? models.map(model => '<div class="saved-card-result"><span>' + escapeHtml(model.name) + '</span><strong>' + escapeHtml(money(cost(model, total, usage, multiplier), c.config?.fxRate)) + '</strong></div>').join('') : '<span class="saved-card-empty">' + escapeHtml(uiText('cards.noModels', 'Select at least one model.', '请至少选择一个模型。')) + '</span>') + '</div>';
-      }
-      const rows = Array.isArray(c.rows) && c.rows.length ? c.rows : [c.config || {}];
-      const results = rows.map((row, index) => {
-        const rowUsage = {ratio:num(row.ratio ?? c.config?.ratio), hit:percent(row.hit ?? c.config?.hit)};
-        const rowMultiplier = num(row.multiplier ?? c.config?.multiplier);
-        if (card.type === 'tokenCost') return '<div class="saved-card-row"><span>' + escapeHtml(uiText('cards.row', 'Row {index}', '第 {index} 行').replace('{index}', String(index + 1))) + '</span>' + models.map(model => '<strong>' + escapeHtml(model.name) + ': ' + escapeHtml(money(cost(model, num(row.total ?? c.config?.total), rowUsage, rowMultiplier), row.fxRate ?? c.config?.fxRate)) + '</strong>').join('') + '</div>';
-        return '<div class="saved-card-row"><span>' + escapeHtml(uiText('cards.row', 'Row {index}', '第 {index} 行').replace('{index}', String(index + 1))) + '</span>' + models.map(model => { const perM = cost(model, 1, rowUsage, rowMultiplier); const budget = num(row.budget ?? c.config?.budget) / ((c.currency || state.currency) === 'CNY' ? (num(row.fxRate ?? c.config?.fxRate) || 1) : 1); return '<strong>' + escapeHtml(model.name) + ': ' + escapeHtml(perM ? tokens(budget / perM, c.unit || 'M') : '--') + '</strong>'; }).join('') + '</div>';
-      }).join('');
-      return '<div class="saved-card-fields">' + cardInput(card, card.type === 'tokenCost' ? 'total' : 'budget', rows[0][card.type === 'tokenCost' ? 'total' : 'budget'] ?? c.config?.[card.type === 'tokenCost' ? 'total' : 'budget'], card.type === 'tokenCost' ? (c.unit || 'M') : (c.currency || state.currency)) + cardInput(card, 'ratio', c.config?.ratio, ': 1') + cardInput(card, 'hit', c.config?.hit, '%') + cardInput(card, 'multiplier', c.config?.multiplier, 'x') + cardInput(card, 'fxRate', c.config?.fxRate, '¥/$') + (card.type === 'budget' ? cardCurrencySelect(card, 'currency', c.currency || state.currency) : '') + '</div>' + cardModelPicker(card) + cardModelWarning(card) + '<div class="saved-card-results">' + (models.length ? results : '<span class="saved-card-empty">' + escapeHtml(uiText('cards.noModels', 'Select at least one model.', '请至少选择一个模型。')) + '</span>') + '</div>';
-    }
-    function applyCardField(card, key, value) {
-      if (card.type === 'multiplier') { card.config[key] = value; return; }
-      const target = card.config.rows?.[0] || card.config.config;
-      if (['total', 'budget'].includes(key) && card.config.rows?.[0]) card.config.rows[0][key] = value;
-      else if (target) target[key] = value;
-    }
-    function renderCardSummary(card) {
-      const c = card.config || {};
-      const models = cardModels(card);
-      let summary = '--';
-      if (card.type === 'multiplier') {
-        const toUsd = (amount, currency) => currency === 'CNY' ? num(amount) / (num(c.fxRate) || 1) : num(amount);
-        const result = toUsd(c.earned, c.earnedCurrency) ? toUsd(c.spent, c.spentCurrency) / toUsd(c.earned, c.earnedCurrency) : 0;
-        summary = result ? result.toLocaleString('zh-CN', {maximumFractionDigits:4}) : '--';
-      } else if (models.length) {
-        const usage = {ratio:num(c.config?.ratio), hit:percent(c.config?.hit)};
-        const multiplier = num(c.config?.multiplier);
-        if (card.type === 'comparison') summary = models.map(model => model.name + ': ' + money(cost(model, num(c.config?.total), usage, multiplier), c.config?.fxRate)).join(' · ');
-        else {
-          const row = Array.isArray(c.rows) && c.rows.length ? c.rows[0] : c.config || {};
-          const rowUsage = {ratio:num(row.ratio ?? c.config?.ratio), hit:percent(row.hit ?? c.config?.hit)};
-          const rowMultiplier = num(row.multiplier ?? c.config?.multiplier);
-          summary = models.map(model => {
-            if (card.type === 'tokenCost') return model.name + ': ' + money(cost(model, num(row.total ?? c.config?.total), rowUsage, rowMultiplier), row.fxRate ?? c.config?.fxRate);
-            const perM = cost(model, 1, rowUsage, rowMultiplier);
-            const budget = num(row.budget ?? c.config?.budget) / ((c.currency || state.currency) === 'CNY' ? (num(row.fxRate ?? c.config?.fxRate) || 1) : 1);
-            return model.name + ': ' + (perM ? tokens(budget / perM, c.unit || 'M') : '--');
-          }).join(' · ');
-        }
-      }
-      const modelNames = card.type === 'multiplier' ? uiText('cards.type.multiplier', 'Multiplier', '倍率转换') : models.map(model => model.name).join(', ') || uiText('cards.noModels', 'No models selected', '未选择模型');
-      return '<div class="saved-card-summary"><p class="saved-card-model-list">' + escapeHtml(modelNames) + '</p><div class="saved-card-result"><span>' + escapeHtml(uiText('cards.result.summary', 'Current result', '当前结果')) + '</span><strong>' + escapeHtml(summary) + '</strong></div>' + cardModelWarning(card) + '</div>';
-    }
-    function renderCards() {
-      const root = $('cardsGrid');
-      if (!root || !state) return;
-      root.style.setProperty('--cards-columns', String(state.cardsGridColumns || 3));
-      if (!state.cards.length) { root.innerHTML = '<div class="cards-empty"><strong>' + escapeHtml(uiText('cards.emptyTitle', 'No saved cards yet', '还没有收藏卡片')) + '</strong><span>' + escapeHtml(uiText('cards.emptyDescription', 'Add a card to keep a calculation close at hand.', '添加一张卡片，把常用计算放在这里。')) + '</span></div>'; return; }
-      root.innerHTML = state.cards.map(card => '<article class="saved-card" draggable="true" data-card-id="' + escapeHtml(card.id) + '"><header class="saved-card-header"><div><span class="saved-card-type">' + escapeHtml(uiText('cards.type.' + card.type, card.type, card.type)) + '</span><h3 class="saved-card-title">' + escapeHtml(cardTitle(card)) + '</h3></div><div class="saved-card-actions"><button class="text-btn" type="button" data-card-edit="' + escapeHtml(card.id) + '">' + escapeHtml(uiText('cards.edit', 'Edit', '编辑')) + '</button><button class="text-btn" type="button" data-card-up="' + escapeHtml(card.id) + '" title="' + escapeHtml(uiText('cards.moveUp', 'Move up', '上移')) + '">↑</button><button class="text-btn" type="button" data-card-down="' + escapeHtml(card.id) + '" title="' + escapeHtml(uiText('cards.moveDown', 'Move down', '下移')) + '">↓</button><button class="text-btn danger-btn" type="button" data-card-delete="' + escapeHtml(card.id) + '">' + escapeHtml(uiText('action.deleteItem', 'Delete', '删除')) + '</button></div></header>' + renderCardSummary(card) + '</article>').join('');
-      root.querySelectorAll('[data-card-edit]').forEach(button => button.addEventListener('click', () => openCardEditDialog(button.dataset.cardEdit)));
-      root.querySelectorAll('[data-card-delete]').forEach(button => button.addEventListener('click', () => { if (!confirm(uiText('cards.deleteConfirm', 'Delete this saved card?', '确定删除这张收藏卡片吗？'))) return; state.cards = state.cards.filter(card => card.id !== button.dataset.cardDelete).map((card, index) => ({...card, order:index})); renderCards(); save(); }));
-      root.querySelectorAll('[data-card-up],[data-card-down]').forEach(button => button.addEventListener('click', () => moveCard(button.dataset.cardUp || button.dataset.cardDown, Boolean(button.dataset.cardUp), true)));
-      root.querySelectorAll('.saved-card').forEach(cardEl => {
-        cardEl.addEventListener('dragstart', () => { draggedCardId = cardEl.dataset.cardId; cardEl.classList.add('is-dragging'); });
-        cardEl.addEventListener('dragend', () => { draggedCardId = null; cardEl.classList.remove('is-dragging'); });
-        cardEl.addEventListener('dragover', event => event.preventDefault());
-        cardEl.addEventListener('drop', event => { event.preventDefault(); if (!draggedCardId || draggedCardId === cardEl.dataset.cardId) return; const from = state.cards.findIndex(card => card.id === draggedCardId); const to = state.cards.findIndex(card => card.id === cardEl.dataset.cardId); const [item] = state.cards.splice(from, 1); state.cards.splice(to, 0, item); state.cards = state.cards.map((card, index) => ({...card, order:index})); renderCards(); save(); });
-      });
-    }
-    function renderCardEditBody() {
-      const root = $('cardEditBody');
-      if (!root || !pendingCardEditDraft) return;
-      root.innerHTML = renderSavedCardBody(pendingCardEditDraft);
-      root.querySelectorAll('[data-card-field]').forEach(input => input.addEventListener('change', event => { applyCardField(pendingCardEditDraft, event.target.dataset.cardField, num(event.target.value)); renderCardEditBody(); }));
-      root.querySelectorAll('[data-card-currency]').forEach(input => input.addEventListener('change', event => { pendingCardEditDraft.config[event.target.dataset.cardCurrency] = event.target.value; renderCardEditBody(); }));
-      root.querySelectorAll('[data-card-model]').forEach(input => input.addEventListener('change', event => { pendingCardEditDraft.selectedModelIds = [...new Set((pendingCardEditDraft.selectedModelIds || []).filter(id => id !== event.target.dataset.modelId).concat(event.target.checked ? [event.target.dataset.modelId] : []))]; renderCardEditBody(); }));
-    }
-    function openCardEditDialog(id) {
-      const card = state.cards.find(item => item.id === id);
-      if (!card) return;
-      pendingCardEditId = id;
-      pendingCardEditDraft = clone(card);
-      $('cardEditName').value = card.customTitle ? card.title : '';
-      renderCardEditBody();
-      $('cardEditDialog')?.showModal();
-    }
-    function closeCardEditDialog() {
-      $('cardEditDialog')?.close();
-      pendingCardEditId = null;
-      pendingCardEditDraft = null;
-    }
-    function saveCardEdit() {
-      const card = state.cards.find(item => item.id === pendingCardEditId);
-      if (!card || !pendingCardEditDraft) return closeCardEditDialog();
-      const title = String($('cardEditName').value || '').trim();
-      card.title = title;
-      card.customTitle = Boolean(title);
-      card.config = clone(pendingCardEditDraft.config);
-      card.selectedModelIds = [...(pendingCardEditDraft.selectedModelIds || [])];
-      closeCardEditDialog();
-      renderCards();
-      save();
-    }
-    function moveCard(id, up, persist=true) { const index = state.cards.findIndex(card => card.id === id); const next = index + (up ? -1 : 1); if (index < 0 || next < 0 || next >= state.cards.length) return; const [item] = state.cards.splice(index, 1); state.cards.splice(next, 0, item); state.cards = state.cards.map((card, order) => ({...card, order})); renderCards(); if (persist) save(); }
-    function openCardAddDialog() { $('cardAddDialog')?.showModal(); }
-    function addSavedCard(type) { if (!CARD_TYPES.includes(type)) return; state.cards.push(newSavedCard(type)); state.cards = state.cards.map((card, order) => ({...card, order})); $('cardAddDialog')?.close(); setActiveView('cards'); renderCards(); save(); }
-    function saveCurrentAsCard(type) { if (!CARD_TYPES.includes(type)) return; state.cards.push(newSavedCard(type)); setActiveView('cards'); renderCards(); save(); }
     function update(renderModelComparison=true) {
       const inputTotal = num(state.cache) + num(state.input);
       $('ratioOut').textContent = num(state.output) ? (inputTotal / num(state.output)).toFixed(2) + ' : 1' : '--';
@@ -1960,7 +1796,7 @@
       const earnedUsd = toUsd(state.multiplierCalc.earned, state.multiplierCalc.earnedCurrency);
       $('multiplierOut').textContent = earnedUsd ? (spentUsd / earnedUsd).toLocaleString('zh-CN', {maximumFractionDigits:4}) : '--';
       if (renderModelComparison) { renderComparisonConfig(); renderComparison(); }
-      renderScenario(); renderCards(); renderSettingsModelList(); save();
+      renderScenario(); renderSettingsModelList(); save();
     }
     bindStructureInput('cache','cache'); bindStructureInput('input','input'); bindStructureInput('output','output'); bind('knownRatio','knownRatio'); bind('knownHit','knownHit',percent);
     $('multSpent').addEventListener('input', event => { state.multiplierCalc.spent = num(event.target.value); update(); });
@@ -2260,17 +2096,6 @@
     $('modelAddDialog').addEventListener('close', () => { pendingModelEditId = null; });
     $('addTokenRow').onclick=()=>{state.tokenRows.push(newRow('tokenRows', state.tokenConfig)); renderTokenRows(); save();};
     $('addBudgetRow').onclick=()=>{state.budgetRows.push(newRow('budgetRows', state.budgetConfig)); renderBudgetRows(); save();};
-    $('addCard')?.addEventListener('click', openCardAddDialog);
-    $('closeCardAdd')?.addEventListener('click', () => $('cardAddDialog')?.close());
-    $('cardAddDialog')?.addEventListener('click', event => { if (event.target === event.currentTarget) event.currentTarget.close(); });
-    document.querySelectorAll('[data-card-template]').forEach(button => button.addEventListener('click', () => addSavedCard(button.dataset.cardTemplate)));
-    $('closeCardEdit')?.addEventListener('click', closeCardEditDialog);
-    $('cancelCardEdit')?.addEventListener('click', closeCardEditDialog);
-    $('saveCardEdit')?.addEventListener('click', saveCardEdit);
-    $('cardEditDialog')?.addEventListener('click', event => { if (event.target === event.currentTarget) closeCardEditDialog(); });
-    $('cardEditDialog')?.addEventListener('close', () => { pendingCardEditId = null; pendingCardEditDraft = null; });
-    $('cardsColumns')?.addEventListener('change', event => { state.cardsGridColumns = Math.min(6, Math.max(1, Number(event.target.value) || 3)); renderCards(); save(); });
-    document.querySelectorAll('[data-save-card]').forEach(button => button.addEventListener('click', () => saveCurrentAsCard(button.dataset.saveCard)));
     const resetConfirmDialog = $('resetConfirmDialog');
     const resetTextDialog = $('resetTextDialog');
     const resetConfirmInput = $('resetConfirmInput');
@@ -2366,8 +2191,7 @@
         $('multEarnedCurrency').value = state.multiplierCalc.earnedCurrency;
         $('comparisonUnit').value = state.comparisonUnit;
         $('tokenUnit').value = state.tokenUnit;
-         $('budgetUnit').value = state.budgetUnit;
-         $('cardsColumns').value = String(state.cardsGridColumns);
+        $('budgetUnit').value = state.budgetUnit;
         $('currency').value = state.currency;
         $('language').value = state.language;
         $('showHostedModels').checked = state.showHostedModels;
