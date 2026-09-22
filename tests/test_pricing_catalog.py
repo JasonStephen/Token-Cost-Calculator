@@ -216,12 +216,18 @@ class PricingCatalogTests(unittest.TestCase):
         self.assertIn('stateVersion:12', app_source)
         self.assertIn('.scenario-favorites-drawer', css_source)
         self.assertIn('position:absolute', css_source)
-        self.assertIn('.favorite-details', css_source)
-        self.assertIn('.favorite-preview', css_source)
-        self.assertIn('showFavoritePreview(type, id)', app_source)
+        self.assertNotIn('.favorite-details', css_source)
+        self.assertNotIn('.favorite-preview', css_source)
+        self.assertIn('showFavoriteDetails(type, id)', app_source)
         self.assertIn('.scenario-row-actions', css_source)
         self.assertIn('.row-favorite', css_source)
         self.assertIn('function favoriteDetails(type, favorite)', app_source)
+        self.assertIn('function requestFavoriteDelete(type, ids)', app_source)
+        self.assertIn('data-favorite-select', app_source)
+        self.assertIn('favorite-detail-window', css_source)
+        self.assertIn('favorite-bulk-delete', css_source)
+        self.assertIn('function ensureFavoriteDeleteDialog()', app_source)
+        self.assertNotIn("confirm(t('favorites.deleteConfirm'", app_source)
 
     def test_batch_launcher_keeps_devtools_manual(self):
         root = Path(__file__).resolve().parents[1]

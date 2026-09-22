@@ -27,6 +27,7 @@
     let modelSelectionProvider = '';
     let modelSelectionPanel = 'select';
     let pendingModelSwitch = null;
+    let pendingFavoriteDelete = null;
     let onboardingStep = 0;
     let onboardingSubmitting = false;
     let onboardingTransitioning = false;
@@ -1571,39 +1572,92 @@
       fields.push(t('favorites.models') + ': ' + (modelNames.join(', ') || '--'));
       return fields.join('\n');
     }
-    function showFavoritePreview(type, id) {
+    function favoriteDetailsId(type) { return type === 'tokenRows' ? 'tokenFavoriteDetails' : 'budgetFavoriteDetails'; }
+    function ensureFavoriteDetailsWindow(type) {
+      const id = favoriteDetailsId(type);
+      let panel = $(id);
+      if (panel) return panel;
       const drawer = $(type === 'tokenRows' ? 'tokenFavoritesDrawer' : 'budgetFavoritesDrawer');
-      const preview = drawer?.querySelector('.favorite-preview');
+      if (!drawer || !drawer.parentElement) return null;
+      panel = document.createElement('aside');
+      panel.className = 'favorite-detail-window';
+      panel.id = id;
+      panel.dataset.favoriteDetails = type;
+      panel.hidden = true;
+      panel.setAttribute('aria-live', 'polite');
+      panel.innerHTML = '<h3>' + escapeHtml(t('favorites.detail')) + '</h3><strong></strong><pre></pre>';
+      drawer.parentElement.appendChild(panel);
+      return panel;
+    }
+    function ensureFavoriteBulkDelete(type) {
+      const drawer = $(type === 'tokenRows' ? 'tokenFavoritesDrawer' : 'budgetFavoritesDrawer');
+      const heading = drawer?.querySelector('.scenario-favorites-drawer-heading');
+      if (!heading) return null;
+      let button = heading.querySelector('[data-favorite-bulk-delete]');
+      if (!button) {
+        button = document.createElement('button');
+        button.className = 'favorite-bulk-delete';
+        button.type = 'button';
+        button.dataset.favoriteBulkDelete = type;
+        button.disabled = true;
+        heading.appendChild(button);
+      }
+      button.title = t('favorites.deleteSelected');
+      button.setAttribute('aria-label', t('favorites.deleteSelected'));
+      button.textContent = '\u00d7';
+      return button;
+    }
+    function showFavoriteDetails(type, id) {
+      const panel = ensureFavoriteDetailsWindow(type);
       const favorite = (state?.[favoriteKey(type)] || []).find(item => item.id === id);
-      if (!preview) return;
-      const title = preview.querySelector('strong');
-      const details = preview.querySelector('pre');
+      if (!panel) return;
       if (!favorite) {
-        if (title) title.textContent = t('favorites.preview');
-        if (details) details.textContent = '';
+        panel.hidden = true;
         return;
       }
+      const title = panel.querySelector('strong');
+      const details = panel.querySelector('pre');
+      panel.hidden = false;
       if (title) title.textContent = favorite.title;
       if (details) details.textContent = favoriteDetails(type, favorite);
+    }
+    function hideFavoriteDetails(type) {
+      const panel = ensureFavoriteDetailsWindow(type);
+      if (panel) panel.hidden = true;
+    }
+    function updateFavoriteBulkDelete(type) {
+      const root = $(type === 'tokenRows' ? 'tokenFavoritesList' : 'budgetFavoritesList');
+      const button = ensureFavoriteBulkDelete(type);
+      if (!root || !button) return;
+      const count = root.querySelectorAll('[data-favorite-select]:checked').length;
+      button.disabled = count === 0;
+      button.dataset.selectedCount = String(count);
+    }
+    function bindFavoriteItems(type, root) {
+      root.querySelectorAll('.favorite-item').forEach(item => {
+        const id = item.dataset.favoriteId;
+        item.addEventListener('mouseenter', () => showFavoriteDetails(type, id));
+        item.addEventListener('mouseleave', () => hideFavoriteDetails(type));
+        item.addEventListener('focusin', () => showFavoriteDetails(type, id));
+        item.addEventListener('focusout', event => {
+          if (!item.contains(event.relatedTarget)) hideFavoriteDetails(type);
+        });
+      });
     }
     function renderFavorites() {
       ['tokenRows', 'budgetRows'].forEach(type => {
         const root = $(type === 'tokenRows' ? 'tokenFavoritesList' : 'budgetFavoritesList');
         if (!root) return;
-        const drawer = root.closest('[data-favorites-drawer]');
-        if (drawer && !drawer.querySelector('.favorite-preview')) {
-          const preview = document.createElement('aside');
-          preview.className = 'favorite-preview';
-          preview.setAttribute('aria-live', 'polite');
-          preview.innerHTML = '<strong>' + escapeHtml(t('favorites.preview')) + '</strong><pre></pre>';
-          drawer.insertBefore(preview, root);
-        }
+        ensureFavoriteDetailsWindow(type);
+        ensureFavoriteBulkDelete(type);
         const items = state?.[favoriteKey(type)] || [];
         root.innerHTML = items.length ? items.map(favorite => {
           const details = favoriteDetails(type, favorite);
-          return '<div class="favorite-item"><button class="favorite-insert" type="button" data-favorite-insert="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" title="' + escapeHtml(details) + '" aria-label="' + escapeHtml(favorite.title + ': ' + details) + '"><span>' + escapeHtml(favorite.title) + '</span><small>' + escapeHtml(t('favorites.insert')) + '</small></button><span class="favorite-details" role="tooltip">' + escapeHtml(details) + '</span><button class="favorite-delete" type="button" data-favorite-delete="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.delete')) + '" title="' + escapeHtml(t('favorites.delete')) + '">×</button></div>';
+          return '<div class="favorite-item" data-favorite-id="' + escapeHtml(favorite.id) + '"><input class="favorite-select" type="checkbox" data-favorite-select data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.select') + ': ' + favorite.title) + '"><button class="favorite-insert" type="button" data-favorite-insert="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(favorite.title + ': ' + details) + '"><span>' + escapeHtml(favorite.title) + '</span><small>' + escapeHtml(t('favorites.insert')) + '</small></button><button class="favorite-delete" type="button" data-favorite-delete="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.delete')) + '" title="' + escapeHtml(t('favorites.delete')) + '">×</button></div>';
         }).join('') : '<p class="favorites-empty">' + escapeHtml(t('favorites.empty')) + '</p>';
-        showFavoritePreview(type, items[0]?.id);
+        hideFavoriteDetails(type);
+        bindFavoriteItems(type, root);
+        updateFavoriteBulkDelete(type);
       });
     }
     function toggleFavoritesDrawer(type) {
@@ -1641,13 +1695,44 @@
       save();
       setActiveView(type === 'tokenRows' ? 'tokenCost' : 'budget');
     }
-    function deleteFavorite(type, id) {
+    function ensureFavoriteDeleteDialog() {
+      let dialog = $('favoriteDeleteDialog');
+      if (dialog) return dialog;
+      dialog = document.createElement('dialog');
+      dialog.className = 'confirm-dialog favorite-delete-dialog';
+      dialog.id = 'favoriteDeleteDialog';
+      dialog.innerHTML = '<form method="dialog"><h3 id="favoriteDeleteTitle"></h3><p id="favoriteDeleteDescription"></p><div class="confirm-dialog-actions"><button class="text-btn" id="cancelFavoriteDelete" value="cancel" type="submit">' + escapeHtml(t('action.cancel')) + '</button><button class="danger-btn" id="confirmFavoriteDelete" type="button">' + escapeHtml(t('favorites.delete')) + '</button></div></form>';
+      document.body.appendChild(dialog);
+      dialog.querySelector('#confirmFavoriteDelete').addEventListener('click', executeFavoriteDelete);
+      dialog.addEventListener('close', () => { pendingFavoriteDelete = null; });
+      return dialog;
+    }
+    function requestFavoriteDelete(type, ids) {
+      const uniqueIds = [...new Set(ids)].filter(Boolean);
+      if (!uniqueIds.length) return;
       const favorites = state[favoriteKey(type)] || [];
-      const favorite = favorites.find(item => item.id === id);
-      if (!favorite || !confirm(t('favorites.deleteConfirm', {title:favorite.title}))) return;
-      state[favoriteKey(type)] = favorites.filter(item => item.id !== id);
+      const dialog = ensureFavoriteDeleteDialog();
+      pendingFavoriteDelete = {type, ids:uniqueIds};
+      const title = dialog.querySelector('#favoriteDeleteTitle');
+      const description = dialog.querySelector('#favoriteDeleteDescription');
+      if (title) title.textContent = t('favorites.deleteSelectedTitle');
+      if (description) description.textContent = uniqueIds.length === 1
+        ? t('favorites.deleteConfirm', {title:favorites.find(item => item.id === uniqueIds[0])?.title || ''})
+        : t('favorites.deleteSelectedConfirm', {count:uniqueIds.length});
+      dialog.showModal();
+    }
+    function executeFavoriteDelete() {
+      if (!pendingFavoriteDelete) return;
+      const {type, ids} = pendingFavoriteDelete;
+      const deleteIds = new Set(ids);
+      state[favoriteKey(type)] = (state[favoriteKey(type)] || []).filter(item => !deleteIds.has(item.id));
+      $('favoriteDeleteDialog')?.close();
+      pendingFavoriteDelete = null;
       renderFavorites();
       save();
+    }
+    function deleteFavorite(type, id) {
+      requestFavoriteDelete(type, [id]);
     }
     function modelSelectionGroups() {
       const groups = new Map();
@@ -2401,13 +2486,15 @@
         const remove = event.target.closest('[data-favorite-delete]');
         if (remove) deleteFavorite(remove.dataset.favoriteDelete, remove.dataset.favoriteId);
       });
-      drawer.addEventListener('mouseover', event => {
-        const item = event.target.closest('[data-favorite-id]');
-        if (item) showFavoritePreview(drawer.dataset.favoritesDrawer, item.dataset.favoriteId);
+      drawer.addEventListener('change', event => {
+        if (event.target.matches('[data-favorite-select]')) updateFavoriteBulkDelete(drawer.dataset.favoritesDrawer);
       });
-      drawer.addEventListener('focusin', event => {
-        const item = event.target.closest('[data-favorite-id]');
-        if (item) showFavoritePreview(drawer.dataset.favoritesDrawer, item.dataset.favoriteId);
+      drawer.addEventListener('click', event => {
+        const bulk = event.target.closest('[data-favorite-bulk-delete]');
+        if (!bulk) return;
+        const root = $(drawer.dataset.favoritesDrawer === 'tokenRows' ? 'tokenFavoritesList' : 'budgetFavoritesList');
+        const ids = [...(root?.querySelectorAll('[data-favorite-select]:checked') || [])].map(input => input.dataset.favoriteId);
+        requestFavoriteDelete(drawer.dataset.favoritesDrawer, ids);
       });
     });
     document.querySelectorAll('[data-favorites-drawer]').forEach(drawer => {
