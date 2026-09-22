@@ -30,6 +30,7 @@ window.localeData["en"] = {
   "favorites.delete": "Delete favorite",
   "favorites.deleteConfirm": "Delete favorite \"{title}\"?",
   "favorites.models": "Models",
+  "favorites.preview": "Select a saved item",
   "favorites.tokenDefault": "Token row {number}",
   "favorites.budgetDefault": "Budget row {number}",
   "settings.eyebrow": "Preferences and data",

@@ -217,6 +217,8 @@ class PricingCatalogTests(unittest.TestCase):
         self.assertIn('.scenario-favorites-drawer', css_source)
         self.assertIn('position:absolute', css_source)
         self.assertIn('.favorite-details', css_source)
+        self.assertIn('.favorite-preview', css_source)
+        self.assertIn('showFavoritePreview(type, id)', app_source)
         self.assertIn('.scenario-row-actions', css_source)
         self.assertIn('.row-favorite', css_source)
         self.assertIn('function favoriteDetails(type, favorite)', app_source)

@@ -1571,15 +1571,39 @@
       fields.push(t('favorites.models') + ': ' + (modelNames.join(', ') || '--'));
       return fields.join('\n');
     }
+    function showFavoritePreview(type, id) {
+      const drawer = $(type === 'tokenRows' ? 'tokenFavoritesDrawer' : 'budgetFavoritesDrawer');
+      const preview = drawer?.querySelector('.favorite-preview');
+      const favorite = (state?.[favoriteKey(type)] || []).find(item => item.id === id);
+      if (!preview) return;
+      const title = preview.querySelector('strong');
+      const details = preview.querySelector('pre');
+      if (!favorite) {
+        if (title) title.textContent = t('favorites.preview');
+        if (details) details.textContent = '';
+        return;
+      }
+      if (title) title.textContent = favorite.title;
+      if (details) details.textContent = favoriteDetails(type, favorite);
+    }
     function renderFavorites() {
       ['tokenRows', 'budgetRows'].forEach(type => {
         const root = $(type === 'tokenRows' ? 'tokenFavoritesList' : 'budgetFavoritesList');
         if (!root) return;
+        const drawer = root.closest('[data-favorites-drawer]');
+        if (drawer && !drawer.querySelector('.favorite-preview')) {
+          const preview = document.createElement('aside');
+          preview.className = 'favorite-preview';
+          preview.setAttribute('aria-live', 'polite');
+          preview.innerHTML = '<strong>' + escapeHtml(t('favorites.preview')) + '</strong><pre></pre>';
+          drawer.insertBefore(preview, root);
+        }
         const items = state?.[favoriteKey(type)] || [];
         root.innerHTML = items.length ? items.map(favorite => {
           const details = favoriteDetails(type, favorite);
           return '<div class="favorite-item"><button class="favorite-insert" type="button" data-favorite-insert="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" title="' + escapeHtml(details) + '" aria-label="' + escapeHtml(favorite.title + ': ' + details) + '"><span>' + escapeHtml(favorite.title) + '</span><small>' + escapeHtml(t('favorites.insert')) + '</small></button><span class="favorite-details" role="tooltip">' + escapeHtml(details) + '</span><button class="favorite-delete" type="button" data-favorite-delete="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.delete')) + '" title="' + escapeHtml(t('favorites.delete')) + '">×</button></div>';
         }).join('') : '<p class="favorites-empty">' + escapeHtml(t('favorites.empty')) + '</p>';
+        showFavoritePreview(type, items[0]?.id);
       });
     }
     function toggleFavoritesDrawer(type) {
@@ -2376,6 +2400,14 @@
         if (insert) return insertFavorite(insert.dataset.favoriteInsert, insert.dataset.favoriteId);
         const remove = event.target.closest('[data-favorite-delete]');
         if (remove) deleteFavorite(remove.dataset.favoriteDelete, remove.dataset.favoriteId);
+      });
+      drawer.addEventListener('mouseover', event => {
+        const item = event.target.closest('[data-favorite-id]');
+        if (item) showFavoritePreview(drawer.dataset.favoritesDrawer, item.dataset.favoriteId);
+      });
+      drawer.addEventListener('focusin', event => {
+        const item = event.target.closest('[data-favorite-id]');
+        if (item) showFavoritePreview(drawer.dataset.favoritesDrawer, item.dataset.favoriteId);
       });
     });
     document.querySelectorAll('[data-favorites-drawer]').forEach(drawer => {
