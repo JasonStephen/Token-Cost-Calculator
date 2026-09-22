@@ -17,6 +17,7 @@ window.localeData["zh-CN"] = {
   "favorites.insert": "插入",
   "favorites.delete": "删除收藏",
   "favorites.deleteConfirm": "确定删除收藏“{title}”吗？",
+  "favorites.models": "模型",
   "favorites.tokenDefault": "Token 条目 {number}",
   "favorites.budgetDefault": "预算条目 {number}",
   "settings.description": "自定义工作台和模型目录。",

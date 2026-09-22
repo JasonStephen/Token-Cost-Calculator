@@ -1554,14 +1554,32 @@
       result.modelIds = [...rowModelIds(type, row)];
       return result;
     }
+    function favoriteFieldValue(type, field, value) {
+      if (field.key === 'total') {
+        const unit = scenarioTokenUnit(type);
+        return tokenDisplayValue(value, unit) + ' ' + unit + ' Token';
+      }
+      const formatted = num(value).toLocaleString('zh-CN', {maximumFractionDigits:6});
+      if (field.key === 'budget') return (state.currency === 'CNY' ? '\u00a5' : '$') + formatted;
+      return formatted + (field.unit ? ' ' + field.unit : '');
+    }
+    function favoriteDetails(type, favorite) {
+      const row = favorite && favorite.row || {};
+      const fields = fieldsFor(type).map(field => scenarioFieldLabel(type, field) + ': ' + favoriteFieldValue(type, field, row[field.key]));
+      const modelIds = favorite && (favorite.modelIds || row.modelIds) || [];
+      const modelNames = modelIds.map(id => state.models.find(model => model.id === id)?.name || id);
+      fields.push(t('favorites.models') + ': ' + (modelNames.join(', ') || '--'));
+      return fields.join('\n');
+    }
     function renderFavorites() {
       ['tokenRows', 'budgetRows'].forEach(type => {
         const root = $(type === 'tokenRows' ? 'tokenFavoritesList' : 'budgetFavoritesList');
         if (!root) return;
         const items = state?.[favoriteKey(type)] || [];
-        root.innerHTML = items.length ? items.map(favorite =>
-          '<div class="favorite-item"><button class="favorite-insert" type="button" data-favorite-insert="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '"><span>' + escapeHtml(favorite.title) + '</span><small>' + escapeHtml(t('favorites.insert')) + '</small></button><button class="favorite-delete" type="button" data-favorite-delete="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.delete')) + '" title="' + escapeHtml(t('favorites.delete')) + '">×</button></div>'
-        ).join('') : '<p class="favorites-empty">' + escapeHtml(t('favorites.empty')) + '</p>';
+        root.innerHTML = items.length ? items.map(favorite => {
+          const details = favoriteDetails(type, favorite);
+          return '<div class="favorite-item"><button class="favorite-insert" type="button" data-favorite-insert="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" title="' + escapeHtml(details) + '" aria-label="' + escapeHtml(favorite.title + ': ' + details) + '"><span>' + escapeHtml(favorite.title) + '</span><small>' + escapeHtml(t('favorites.insert')) + '</small></button><span class="favorite-details" role="tooltip">' + escapeHtml(details) + '</span><button class="favorite-delete" type="button" data-favorite-delete="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.delete')) + '" title="' + escapeHtml(t('favorites.delete')) + '">×</button></div>';
+        }).join('') : '<p class="favorites-empty">' + escapeHtml(t('favorites.empty')) + '</p>';
       });
     }
     function toggleFavoritesDrawer(type) {
