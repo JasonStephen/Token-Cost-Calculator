@@ -473,6 +473,8 @@
     let pendingModelId = null;
     let pendingModelConfigId = null;
     let pendingModelEditId = null;
+    let pendingCardEditId = null;
+    let pendingCardEditDraft = null;
     function userAddedModel(model) { return Boolean(model && model.source === 'manual'); }
     function save() {
       if (isResetting) return;
@@ -1858,22 +1860,46 @@
       }).join('');
       return '<div class="saved-card-fields">' + cardInput(card, card.type === 'tokenCost' ? 'total' : 'budget', rows[0][card.type === 'tokenCost' ? 'total' : 'budget'] ?? c.config?.[card.type === 'tokenCost' ? 'total' : 'budget'], card.type === 'tokenCost' ? (c.unit || 'M') : (c.currency || state.currency)) + cardInput(card, 'ratio', c.config?.ratio, ': 1') + cardInput(card, 'hit', c.config?.hit, '%') + cardInput(card, 'multiplier', c.config?.multiplier, 'x') + cardInput(card, 'fxRate', c.config?.fxRate, '¥/$') + (card.type === 'budget' ? cardCurrencySelect(card, 'currency', c.currency || state.currency) : '') + '</div>' + cardModelPicker(card) + cardModelWarning(card) + '<div class="saved-card-results">' + (models.length ? results : '<span class="saved-card-empty">' + escapeHtml(uiText('cards.noModels', 'Select at least one model.', '请至少选择一个模型。')) + '</span>') + '</div>';
     }
+    function applyCardField(card, key, value) {
+      if (card.type === 'multiplier') { card.config[key] = value; return; }
+      const target = card.config.rows?.[0] || card.config.config;
+      if (['total', 'budget'].includes(key) && card.config.rows?.[0]) card.config.rows[0][key] = value;
+      else if (target) target[key] = value;
+    }
+    function renderCardSummary(card) {
+      const c = card.config || {};
+      const models = cardModels(card);
+      let summary = '--';
+      if (card.type === 'multiplier') {
+        const toUsd = (amount, currency) => currency === 'CNY' ? num(amount) / (num(c.fxRate) || 1) : num(amount);
+        const result = toUsd(c.earned, c.earnedCurrency) ? toUsd(c.spent, c.spentCurrency) / toUsd(c.earned, c.earnedCurrency) : 0;
+        summary = result ? result.toLocaleString('zh-CN', {maximumFractionDigits:4}) : '--';
+      } else if (models.length) {
+        const usage = {ratio:num(c.config?.ratio), hit:percent(c.config?.hit)};
+        const multiplier = num(c.config?.multiplier);
+        if (card.type === 'comparison') summary = models.map(model => model.name + ': ' + money(cost(model, num(c.config?.total), usage, multiplier), c.config?.fxRate)).join(' · ');
+        else {
+          const row = Array.isArray(c.rows) && c.rows.length ? c.rows[0] : c.config || {};
+          const rowUsage = {ratio:num(row.ratio ?? c.config?.ratio), hit:percent(row.hit ?? c.config?.hit)};
+          const rowMultiplier = num(row.multiplier ?? c.config?.multiplier);
+          summary = models.map(model => {
+            if (card.type === 'tokenCost') return model.name + ': ' + money(cost(model, num(row.total ?? c.config?.total), rowUsage, rowMultiplier), row.fxRate ?? c.config?.fxRate);
+            const perM = cost(model, 1, rowUsage, rowMultiplier);
+            const budget = num(row.budget ?? c.config?.budget) / ((c.currency || state.currency) === 'CNY' ? (num(row.fxRate ?? c.config?.fxRate) || 1) : 1);
+            return model.name + ': ' + (perM ? tokens(budget / perM, c.unit || 'M') : '--');
+          }).join(' · ');
+        }
+      }
+      const modelNames = card.type === 'multiplier' ? uiText('cards.type.multiplier', 'Multiplier', '倍率转换') : models.map(model => model.name).join(', ') || uiText('cards.noModels', 'No models selected', '未选择模型');
+      return '<div class="saved-card-summary"><p class="saved-card-model-list">' + escapeHtml(modelNames) + '</p><div class="saved-card-result"><span>' + escapeHtml(uiText('cards.result.summary', 'Current result', '当前结果')) + '</span><strong>' + escapeHtml(summary) + '</strong></div>' + cardModelWarning(card) + '</div>';
+    }
     function renderCards() {
       const root = $('cardsGrid');
       if (!root || !state) return;
       root.style.setProperty('--cards-columns', String(state.cardsGridColumns || 3));
       if (!state.cards.length) { root.innerHTML = '<div class="cards-empty"><strong>' + escapeHtml(uiText('cards.emptyTitle', 'No saved cards yet', '还没有收藏卡片')) + '</strong><span>' + escapeHtml(uiText('cards.emptyDescription', 'Add a card to keep a calculation close at hand.', '添加一张卡片，把常用计算放在这里。')) + '</span></div>'; return; }
-      root.innerHTML = state.cards.map(card => '<article class="saved-card" draggable="true" data-card-id="' + escapeHtml(card.id) + '"><header class="saved-card-header"><div><span class="saved-card-type">' + escapeHtml(uiText('cards.type.' + card.type, card.type, card.type)) + '</span><input class="saved-card-title" data-card-title="' + escapeHtml(card.id) + '" value="' + escapeHtml(cardTitle(card)) + '" aria-label="' + escapeHtml(uiText('cards.titleLabel', 'Card title', '卡片标题')) + '"></div><div class="saved-card-actions"><button class="text-btn" type="button" data-card-up="' + escapeHtml(card.id) + '" title="' + escapeHtml(uiText('cards.moveUp', 'Move up', '上移')) + '">↑</button><button class="text-btn" type="button" data-card-down="' + escapeHtml(card.id) + '" title="' + escapeHtml(uiText('cards.moveDown', 'Move down', '下移')) + '">↓</button><button class="text-btn danger-btn" type="button" data-card-delete="' + escapeHtml(card.id) + '">' + escapeHtml(uiText('action.deleteItem', 'Delete', '删除')) + '</button></div></header>' + renderSavedCardBody(card) + '</article>').join('');
-      root.querySelectorAll('[data-card-field]').forEach(input => input.addEventListener('change', event => {
-        const card = state.cards.find(item => item.id === event.target.dataset.cardId); if (!card) return;
-        const key = event.target.dataset.cardField; const value = num(event.target.value);
-        if (card.type === 'multiplier') card.config[key] = value;
-        else { const target = card.config.rows?.[0] || card.config.config; if (['total', 'budget'].includes(key) && card.config.rows?.[0]) card.config.rows[0][key] = value; else if (target) target[key] = value; }
-        renderCards(); save();
-      }));
-      root.querySelectorAll('[data-card-currency]').forEach(input => input.addEventListener('change', event => { const card = state.cards.find(item => item.id === event.target.dataset.cardId); if (!card) return; if (card.type === 'multiplier') card.config[event.target.dataset.cardCurrency] = event.target.value; else card.config[event.target.dataset.cardCurrency] = event.target.value; renderCards(); save(); }));
-      root.querySelectorAll('[data-card-model]').forEach(input => input.addEventListener('change', event => { const card = state.cards.find(item => item.id === event.target.dataset.cardModel); if (!card) return; card.selectedModelIds = [...new Set((card.selectedModelIds || []).filter(id => id !== event.target.dataset.modelId).concat(event.target.checked ? [event.target.dataset.modelId] : []))]; renderCards(); save(); }));
-      root.querySelectorAll('[data-card-title]').forEach(input => input.addEventListener('change', event => { const card = state.cards.find(item => item.id === event.target.dataset.cardTitle); if (!card) return; card.title = String(event.target.value || '').trim(); card.customTitle = Boolean(card.title); save(); }));
+      root.innerHTML = state.cards.map(card => '<article class="saved-card" draggable="true" data-card-id="' + escapeHtml(card.id) + '"><header class="saved-card-header"><div><span class="saved-card-type">' + escapeHtml(uiText('cards.type.' + card.type, card.type, card.type)) + '</span><h3 class="saved-card-title">' + escapeHtml(cardTitle(card)) + '</h3></div><div class="saved-card-actions"><button class="text-btn" type="button" data-card-edit="' + escapeHtml(card.id) + '">' + escapeHtml(uiText('cards.edit', 'Edit', '编辑')) + '</button><button class="text-btn" type="button" data-card-up="' + escapeHtml(card.id) + '" title="' + escapeHtml(uiText('cards.moveUp', 'Move up', '上移')) + '">↑</button><button class="text-btn" type="button" data-card-down="' + escapeHtml(card.id) + '" title="' + escapeHtml(uiText('cards.moveDown', 'Move down', '下移')) + '">↓</button><button class="text-btn danger-btn" type="button" data-card-delete="' + escapeHtml(card.id) + '">' + escapeHtml(uiText('action.deleteItem', 'Delete', '删除')) + '</button></div></header>' + renderCardSummary(card) + '</article>').join('');
+      root.querySelectorAll('[data-card-edit]').forEach(button => button.addEventListener('click', () => openCardEditDialog(button.dataset.cardEdit)));
       root.querySelectorAll('[data-card-delete]').forEach(button => button.addEventListener('click', () => { if (!confirm(uiText('cards.deleteConfirm', 'Delete this saved card?', '确定删除这张收藏卡片吗？'))) return; state.cards = state.cards.filter(card => card.id !== button.dataset.cardDelete).map((card, index) => ({...card, order:index})); renderCards(); save(); }));
       root.querySelectorAll('[data-card-up],[data-card-down]').forEach(button => button.addEventListener('click', () => moveCard(button.dataset.cardUp || button.dataset.cardDown, Boolean(button.dataset.cardUp), true)));
       root.querySelectorAll('.saved-card').forEach(cardEl => {
@@ -1882,6 +1908,40 @@
         cardEl.addEventListener('dragover', event => event.preventDefault());
         cardEl.addEventListener('drop', event => { event.preventDefault(); if (!draggedCardId || draggedCardId === cardEl.dataset.cardId) return; const from = state.cards.findIndex(card => card.id === draggedCardId); const to = state.cards.findIndex(card => card.id === cardEl.dataset.cardId); const [item] = state.cards.splice(from, 1); state.cards.splice(to, 0, item); state.cards = state.cards.map((card, index) => ({...card, order:index})); renderCards(); save(); });
       });
+    }
+    function renderCardEditBody() {
+      const root = $('cardEditBody');
+      if (!root || !pendingCardEditDraft) return;
+      root.innerHTML = renderSavedCardBody(pendingCardEditDraft);
+      root.querySelectorAll('[data-card-field]').forEach(input => input.addEventListener('change', event => { applyCardField(pendingCardEditDraft, event.target.dataset.cardField, num(event.target.value)); renderCardEditBody(); }));
+      root.querySelectorAll('[data-card-currency]').forEach(input => input.addEventListener('change', event => { pendingCardEditDraft.config[event.target.dataset.cardCurrency] = event.target.value; renderCardEditBody(); }));
+      root.querySelectorAll('[data-card-model]').forEach(input => input.addEventListener('change', event => { pendingCardEditDraft.selectedModelIds = [...new Set((pendingCardEditDraft.selectedModelIds || []).filter(id => id !== event.target.dataset.modelId).concat(event.target.checked ? [event.target.dataset.modelId] : []))]; renderCardEditBody(); }));
+    }
+    function openCardEditDialog(id) {
+      const card = state.cards.find(item => item.id === id);
+      if (!card) return;
+      pendingCardEditId = id;
+      pendingCardEditDraft = clone(card);
+      $('cardEditName').value = card.customTitle ? card.title : '';
+      renderCardEditBody();
+      $('cardEditDialog')?.showModal();
+    }
+    function closeCardEditDialog() {
+      $('cardEditDialog')?.close();
+      pendingCardEditId = null;
+      pendingCardEditDraft = null;
+    }
+    function saveCardEdit() {
+      const card = state.cards.find(item => item.id === pendingCardEditId);
+      if (!card || !pendingCardEditDraft) return closeCardEditDialog();
+      const title = String($('cardEditName').value || '').trim();
+      card.title = title;
+      card.customTitle = Boolean(title);
+      card.config = clone(pendingCardEditDraft.config);
+      card.selectedModelIds = [...(pendingCardEditDraft.selectedModelIds || [])];
+      closeCardEditDialog();
+      renderCards();
+      save();
     }
     function moveCard(id, up, persist=true) { const index = state.cards.findIndex(card => card.id === id); const next = index + (up ? -1 : 1); if (index < 0 || next < 0 || next >= state.cards.length) return; const [item] = state.cards.splice(index, 1); state.cards.splice(next, 0, item); state.cards = state.cards.map((card, order) => ({...card, order})); renderCards(); if (persist) save(); }
     function openCardAddDialog() { $('cardAddDialog')?.showModal(); }
@@ -2204,6 +2264,11 @@
     $('closeCardAdd')?.addEventListener('click', () => $('cardAddDialog')?.close());
     $('cardAddDialog')?.addEventListener('click', event => { if (event.target === event.currentTarget) event.currentTarget.close(); });
     document.querySelectorAll('[data-card-template]').forEach(button => button.addEventListener('click', () => addSavedCard(button.dataset.cardTemplate)));
+    $('closeCardEdit')?.addEventListener('click', closeCardEditDialog);
+    $('cancelCardEdit')?.addEventListener('click', closeCardEditDialog);
+    $('saveCardEdit')?.addEventListener('click', saveCardEdit);
+    $('cardEditDialog')?.addEventListener('click', event => { if (event.target === event.currentTarget) closeCardEditDialog(); });
+    $('cardEditDialog')?.addEventListener('close', () => { pendingCardEditId = null; pendingCardEditDraft = null; });
     $('cardsColumns')?.addEventListener('change', event => { state.cardsGridColumns = Math.min(6, Math.max(1, Number(event.target.value) || 3)); renderCards(); save(); });
     document.querySelectorAll('[data-save-card]').forEach(button => button.addEventListener('click', () => saveCurrentAsCard(button.dataset.saveCard)));
     const resetConfirmDialog = $('resetConfirmDialog');

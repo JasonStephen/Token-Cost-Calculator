@@ -20,7 +20,6 @@
             <button class="sidebar-nav-item" type="button" data-view-target="comparison"><span aria-hidden="true">②</span><span data-i18n="sidebar.comparison">Model comparison</span></button>
             <button class="sidebar-nav-item" type="button" data-view-target="tokenCost"><span aria-hidden="true">③</span><span data-i18n="sidebar.tokenCost">Tokens to cost</span></button>
             <button class="sidebar-nav-item" type="button" data-view-target="budget"><span aria-hidden="true">④</span><span data-i18n="sidebar.budget">Budget to tokens</span></button>
-            <button class="sidebar-nav-item" type="button" data-view-target="cards"><span aria-hidden="true">◆</span><span data-i18n="sidebar.cards">Cards</span></button>
           </nav>
           <nav class="settings-global-nav" id="settingsSubnav" aria-label="Settings sections" data-i18n-aria-label="settings.sidebar">
             <button class="settings-subnav-item is-active" type="button" data-settings-target="general" aria-controls="settingsGeneralSection" aria-current="page"><span aria-hidden="true">01</span><span data-i18n="settings.general">General</span></button>
@@ -354,6 +353,15 @@
         <button type="button" class="card-template-option" data-card-template="tokenCost"><strong data-i18n="section.tokenCost.title">Tokens to Cost</strong><span data-i18n="cards.template.tokenCost">Estimate cost from token usage.</span></button>
         <button type="button" class="card-template-option" data-card-template="budget"><strong data-i18n="section.budget.title">Budget to Tokens</strong><span data-i18n="cards.template.budget">Estimate tokens available from a budget.</span></button>
       </div>
+    </form>
+  </dialog>
+  <dialog class="card-edit-dialog" id="cardEditDialog" aria-labelledby="cardEditTitle">
+    <form method="dialog" class="model-config-form">
+      <div class="help-dialog-heading"><h3 id="cardEditTitle" data-i18n="cards.editTitle">Edit saved card</h3><button class="icon-btn" id="closeCardEdit" type="button" data-i18n-title="action.cancel" data-i18n-aria-label="action.cancel" aria-label="Cancel">×</button></div>
+      <p data-i18n="cards.editDescription">Update this card's inputs and selected models.</p>
+      <label class="card-edit-title-field"><span data-i18n="cards.titleLabel">Card title</span><input id="cardEditName" type="text" maxlength="120"></label>
+      <div id="cardEditBody"></div>
+      <div class="confirm-dialog-actions"><button class="text-btn" id="cancelCardEdit" type="button" data-i18n="action.cancel">Cancel</button><button class="add-btn" id="saveCardEdit" type="button" data-i18n="cards.save">Save changes</button></div>
     </form>
   </dialog>
   <script src="dev-bridge.js"></script>

@@ -195,6 +195,11 @@ class PricingCatalogTests(unittest.TestCase):
         self.assertIn('id="cardsGrid"', html_source)
         self.assertIn('id="cardsColumns"', html_source)
         self.assertIn('id="cardAddDialog"', html_source)
+        self.assertIn('id="cardEditDialog"', html_source)
+        self.assertIn('data-card-edit', app_source)
+        self.assertIn('openCardEditDialog', app_source)
+        self.assertNotIn('data-view-target="cards"><span aria-hidden="true">◆</span>', html_source)
+        self.assertNotIn('data-card-title=', app_source)
         for card_type in ("multiplier", "comparison", "tokenCost", "budget"):
             self.assertIn(f'data-card-template="{card_type}"', html_source)
         self.assertIn("cards.type.' + card.type", app_source)
