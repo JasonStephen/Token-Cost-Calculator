@@ -456,6 +456,7 @@
     let isResetting = false;
     let pendingModelId = null;
     let pendingModelConfigId = null;
+    let pendingModelEditId = null;
     function userAddedModel(model) { return Boolean(model && model.source === 'manual'); }
     function save() {
       if (isResetting) return;
@@ -1378,6 +1379,9 @@
       root.innerHTML = models.length ? models.map(model => {
         const toggleLabel = modelEnabled(model) ? uiText('models.disable', '\u7981\u7528') : uiText('models.enable', '\u542f\u7528');
         const statusLabel = modelEnabled(model) ? uiText('models.status.enabled', '\u5df2\u542f\u7528') : uiText('models.status.disabled', '\u5df2\u7981\u7528');
+        const editButton = userAddedModel(model)
+          ? '<button class="text-btn" type="button" data-settings-edit="' + escapeHtml(model.id) + '">' + escapeHtml(uiText('model.edit.action', 'Edit model')) + '</button>'
+          : '';
         const deleteButton = userAddedModel(model)
           ? '<button class="settings-model-delete" type="button" data-settings-remove="' + escapeHtml(model.id) + '" title="' + escapeHtml(t('action.deleteModel')) + '" aria-label="' + escapeHtml(t('action.deleteModel')) + '">×</button>'
           : '';
@@ -1386,7 +1390,7 @@
           '<p class="model-card-provider">' + modelDetails(model) + '</p>' +
           '<p class="model-card-price-unit">' + escapeHtml(uiText('model.card.priceUnit', '$ / 1M tokens', '$ / 1M Token')) + '</p>' +
           '<dl class="model-price-grid"><div><dt>' + escapeHtml(uiText('model.card.cachePrice', 'Cache')) + '</dt><dd>' + escapeHtml(modelPriceDisplay(model.cache)) + '</dd></div><div><dt>' + escapeHtml(uiText('model.card.inputPrice', 'Input')) + '</dt><dd>' + escapeHtml(modelPriceDisplay(model.input)) + '</dd></div><div><dt>' + escapeHtml(uiText('model.card.outputPrice', 'Output')) + '</dt><dd>' + escapeHtml(modelPriceDisplay(model.output)) + '</dd></div></dl>' +
-          '<div class="settings-model-card-actions"><label class="model-enabled-toggle"><input type="checkbox" data-settings-toggle="' + escapeHtml(model.id) + '"' + (modelEnabled(model) ? ' checked' : '') + ' aria-label="' + escapeHtml(toggleLabel) + '"><span class="model-status ' + (modelEnabled(model) ? 'is-enabled' : 'is-disabled') + '">' + escapeHtml(statusLabel) + '</span></label><button class="text-btn" type="button" data-settings-config="' + escapeHtml(model.id) + '">' + escapeHtml(uiText('model.card.customPrice', 'Custom price')) + '</button>' + deleteButton + '</div></article>';
+          '<div class="settings-model-card-actions"><label class="model-enabled-toggle"><input type="checkbox" data-settings-toggle="' + escapeHtml(model.id) + '"' + (modelEnabled(model) ? ' checked' : '') + ' aria-label="' + escapeHtml(toggleLabel) + '"><span class="model-status ' + (modelEnabled(model) ? 'is-enabled' : 'is-disabled') + '">' + escapeHtml(statusLabel) + '</span></label><div class="settings-model-card-commands">' + editButton + '<button class="text-btn" type="button" data-settings-config="' + escapeHtml(model.id) + '">' + escapeHtml(uiText('model.card.customPrice', 'Custom price')) + '</button>' + deleteButton + '</div></div></article>';
       }).join('') : '<div class="settings-model-empty">' + escapeHtml(uiText('models.noResults', 'No models match the current filters', '没有符合当前筛选条件的模型')) + '</div>';
       root.querySelectorAll('[data-settings-toggle]').forEach(button => button.addEventListener('change', () => {
         const model = state.models.find(item => item.id === button.dataset.settingsToggle);
@@ -1397,6 +1401,7 @@
         ensureSelection('budgetRows');
         update();
       }));
+      root.querySelectorAll('[data-settings-edit]').forEach(button => button.addEventListener('click', () => openModelAddDialog(button.dataset.settingsEdit)));
       root.querySelectorAll('[data-settings-config]').forEach(button => button.addEventListener('click', () => openModelConfigDialog(button.dataset.settingsConfig)));
       root.querySelectorAll('[data-settings-remove]').forEach(button => button.addEventListener('click', () => openModelDeleteDialog(button.dataset.settingsRemove)));
     }
@@ -2016,18 +2021,36 @@
       });
       return [...known.entries()].map(([id, name]) => [id, name]).concat([['others', uiText('model.add.providerOther', 'Others', '其他')]]);
     }
-    function openModelAddDialog() {
+    function openModelAddDialog(id=null) {
       if (!state) return;
       const dialog = $('modelAddDialog');
       if (!dialog) return;
-      $('newModelName').value = '';
-      $('newModelCategory').innerHTML = modelAddCategoryOptions().map(([id, label]) => '<option value="' + escapeHtml(id) + '">' + escapeHtml(label) + '</option>').join('');
-      $('newModelProvider').innerHTML = modelAddProviderOptions().map(([id, label]) => '<option value="' + escapeHtml(id) + '">' + escapeHtml(label) + '</option>').join('');
+      const model = id ? state.models.find(item => item.id === id) : null;
+      if (id && !userAddedModel(model)) return;
+      pendingModelEditId = model ? model.id : null;
+      const editing = Boolean(model);
+      const title = $('modelAddTitle');
+      const description = $('modelAddDescription');
+      const saveButton = $('saveModelAdd');
+      if (title) title.textContent = uiText(editing ? 'model.edit.title' : 'model.add.title', editing ? 'Edit custom model' : 'Add custom model');
+      if (description) description.textContent = uiText(editing ? 'model.edit.description' : 'model.add.description', editing ? 'Update this model for local calculations.' : 'Add a model for local calculations.');
+      if (saveButton) saveButton.textContent = uiText(editing ? 'model.edit.save' : 'model.add.save', editing ? 'Save changes' : 'Add model');
+      $('newModelName').value = model ? model.name : '';
+      const categoryOptions = modelAddCategoryOptions();
+      const currentCategory = model ? modelCategory(model) : '';
+      if (currentCategory && !categoryOptions.some(([optionId]) => optionId === currentCategory)) categoryOptions.push([currentCategory, currentCategory]);
+      $('newModelCategory').innerHTML = categoryOptions.map(([optionId, label]) => '<option value="' + escapeHtml(optionId) + '">' + escapeHtml(label) + '</option>').join('');
+      $('newModelProvider').innerHTML = modelAddProviderOptions().map(([optionId, label]) => '<option value="' + escapeHtml(optionId) + '">' + escapeHtml(label) + '</option>').join('');
+      if (model) {
+        $('newModelCategory').value = currentCategory;
+        $('newModelProvider').value = String(model.providerId || 'others');
+      }
       dialog.showModal();
       window.setTimeout(() => $('newModelName').focus(), 0);
     }
     function closeModelAddDialog() {
       $('modelAddDialog')?.close();
+      pendingModelEditId = null;
     }
     function saveModelAdd() {
       if (!state) return;
@@ -2038,6 +2061,19 @@
       const providerId = String($('newModelProvider').value || 'others');
       const provider = $('newModelProvider').selectedOptions[0]?.textContent || uiText('model.add.providerOther', 'Others', '其他');
       const category = String($('newModelCategory').value || 'general');
+      const existing = pendingModelEditId && state.models.find(model => model.id === pendingModelEditId);
+      if (existing) {
+        if (!userAddedModel(existing)) return closeModelAddDialog();
+        existing.name = name;
+        existing.category = category;
+        existing.categoryId = category;
+        existing.provider = provider;
+        existing.providerId = providerId;
+        existing.icon = '';
+        closeModelAddDialog();
+        update();
+        return;
+      }
       const id = 'custom-' + Date.now();
       state.models.push({id, name, category, categoryId:category, provider, providerId, source:'manual', sourceModelId:'', targetId:'', icon:'', cache:0, input:0, output:0, customPricing:true, enabled:true, multiplier:.04, fxRate:7.2, comparisonRatio:config.ratio, comparisonHit:config.hit, comparisonTotal:config.total});
       state.comparisonSelectedModelIds.push(id);
@@ -2045,8 +2081,8 @@
       update();
     }
     if ($('settingsSyncPrices')) $('settingsSyncPrices').onclick = syncPricingModels;
-    if ($('addModel')) $('addModel').onclick = openModelAddDialog;
-    if ($('settingsAddModel')) $('settingsAddModel').onclick = openModelAddDialog;
+    if ($('addModel')) $('addModel').onclick = () => openModelAddDialog();
+    if ($('settingsAddModel')) $('settingsAddModel').onclick = () => openModelAddDialog();
     $('closeModelAdd').onclick = closeModelAddDialog;
     $('cancelModelAdd').onclick = closeModelAddDialog;
     $('saveModelAdd').onclick = saveModelAdd;
@@ -2057,6 +2093,7 @@
     $('modelAddDialog').addEventListener('click', event => {
       if (event.target === event.currentTarget) closeModelAddDialog();
     });
+    $('modelAddDialog').addEventListener('close', () => { pendingModelEditId = null; });
     $('addTokenRow').onclick=()=>{state.tokenRows.push(newRow('tokenRows', state.tokenConfig)); renderTokenRows(); save();};
     $('addBudgetRow').onclick=()=>{state.budgetRows.push(newRow('budgetRows', state.budgetConfig)); renderBudgetRows(); save();};
     const resetConfirmDialog = $('resetConfirmDialog');

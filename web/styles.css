@@ -622,6 +622,8 @@
     .model-price-grid dd { overflow:hidden; margin:3px 0 0; text-overflow:ellipsis; white-space:nowrap; font-size:12px; font-weight:900; }
     .settings-model-card-actions { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:0; }
     .settings-model-card-actions .text-btn { padding:6px 8px; font-size:11px; }
+    .settings-model-card-commands { min-width:0; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:6px; }
+    .settings-model-card-commands .settings-model-delete { width:28px; min-width:28px; height:28px; padding:0; cursor:pointer; }
     .model-enabled-toggle { display:flex; align-items:center; gap:5px; margin:0; font-size:11px; }
     .model-enabled-toggle input { width:15px; height:15px; accent-color:var(--yellow); }
     .settings-reset-row { margin:0; padding:0; }
