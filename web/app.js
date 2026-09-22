@@ -1564,6 +1564,14 @@
         ).join('') : '<p class="favorites-empty">' + escapeHtml(t('favorites.empty')) + '</p>';
       });
     }
+    function toggleFavoritesDrawer(type) {
+      const drawer = $(type === 'tokenRows' ? 'tokenFavoritesDrawer' : 'budgetFavoritesDrawer');
+      const toggle = $(type === 'tokenRows' ? 'tokenFavoritesToggle' : 'budgetFavoritesToggle');
+      if (!drawer || !toggle) return;
+      const open = drawer.hidden;
+      drawer.hidden = !open;
+      toggle.setAttribute('aria-expanded', String(open));
+    }
     function saveFavorite(type, index) {
       const row = state[type]?.[index];
       if (!row) return;
@@ -1914,7 +1922,7 @@
         const total = scenarioValue('tokenRows', row, 'total');
         const multiplier = scenarioValue('tokenRows', row, 'multiplier');
         const fxRate = scenarioValue('tokenRows', row, 'fxRate');
-        const controls = '<div class="scenario-cell scenario-number">' + (index + 1) + '<button class="row-favorite" type="button" data-save-favorite="tokenRows" data-favorite-row="' + index + '" title="' + escapeHtml(t('action.saveFavorite')) + '" aria-label="' + escapeHtml(t('action.saveFavorite')) + '">☆</button><button class="scenario-remove" data-remove-type="tokenRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '">×</button></div>' + fields.map(field => scenarioNumberInput('tokenRows', index, field, row[field.key])).join('');
+        const controls = '<div class="scenario-cell scenario-number"><span class="scenario-row-number">' + (index + 1) + '</span><div class="scenario-row-actions"><button class="row-favorite" type="button" data-save-favorite="tokenRows" data-favorite-row="' + index + '" title="' + escapeHtml(t('action.saveFavorite')) + '" aria-label="' + escapeHtml(t('action.saveFavorite')) + '">☆</button><button class="scenario-remove" data-remove-type="tokenRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '" aria-label="' + t('action.deleteItem') + '">×</button></div></div>' + fields.map(field => scenarioNumberInput('tokenRows', index, field, row[field.key])).join('');
          const results = models.length ? models.map(model => '<div class="scenario-cell scenario-result">' + modelBadge(model, true) + '<span>' + money(cost(model, total, usage, multiplier), fxRate) + '</span><em>' + t('scenario.perHundredMillion', {cost:money(cost(model, 100, usage, multiplier), fxRate)}) + '</em></div>').join('') : '<div class="scenario-row-empty">' + escapeHtml(t('scenario.noModels')) + '</div>';
          const modelButton = modelsShared('tokenRows') ? '' : '<button class="row-model-select" type="button" data-row-model-selection="tokenRows" data-row-index="' + index + '">' + escapeHtml(t('filter.modelSelect')) + ' <span>(' + models.length + ')</span></button>';
          return '<article class="scenario-entry"><div class="scenario-row-inputs">' + controls + modelButton + '</div><div class="scenario-result-scroll"><div class="scenario-result-list">' + results + '</div></div></article>';
@@ -1937,7 +1945,7 @@
         const budget = scenarioValue('budgetRows', row, 'budget');
         const multiplier = scenarioValue('budgetRows', row, 'multiplier');
         const fxRate = scenarioValue('budgetRows', row, 'fxRate');
-        const controls = '<div class="scenario-cell scenario-number">' + (index + 1) + '<button class="row-favorite" type="button" data-save-favorite="budgetRows" data-favorite-row="' + index + '" title="' + escapeHtml(t('action.saveFavorite')) + '" aria-label="' + escapeHtml(t('action.saveFavorite')) + '">☆</button><button class="scenario-remove" data-remove-type="budgetRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '">×</button></div>' + fields.map(field => scenarioNumberInput('budgetRows', index, field, row[field.key])).join('');
+        const controls = '<div class="scenario-cell scenario-number"><span class="scenario-row-number">' + (index + 1) + '</span><div class="scenario-row-actions"><button class="row-favorite" type="button" data-save-favorite="budgetRows" data-favorite-row="' + index + '" title="' + escapeHtml(t('action.saveFavorite')) + '" aria-label="' + escapeHtml(t('action.saveFavorite')) + '">☆</button><button class="scenario-remove" data-remove-type="budgetRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '" aria-label="' + t('action.deleteItem') + '">×</button></div></div>' + fields.map(field => scenarioNumberInput('budgetRows', index, field, row[field.key])).join('');
         const budgetUsd = budget / (state.currency === 'CNY' ? num(fxRate) : 1);
          const results = models.length ? models.map(model => {
            const perM = cost(model, 1, usage, multiplier);
@@ -2344,11 +2352,18 @@
         setActiveView(button.dataset.viewTarget);
       });
     });
-    $('favoritesPanel')?.addEventListener('click', event => {
-      const insert = event.target.closest('[data-favorite-insert]');
-      if (insert) return insertFavorite(insert.dataset.favoriteInsert, insert.dataset.favoriteId);
-      const remove = event.target.closest('[data-favorite-delete]');
-      if (remove) deleteFavorite(remove.dataset.favoriteDelete, remove.dataset.favoriteId);
+    document.querySelectorAll('[data-favorites-drawer]').forEach(drawer => {
+      drawer.addEventListener('click', event => {
+        const insert = event.target.closest('[data-favorite-insert]');
+        if (insert) return insertFavorite(insert.dataset.favoriteInsert, insert.dataset.favoriteId);
+        const remove = event.target.closest('[data-favorite-delete]');
+        if (remove) deleteFavorite(remove.dataset.favoriteDelete, remove.dataset.favoriteId);
+      });
+    });
+    document.querySelectorAll('[data-favorites-drawer]').forEach(drawer => {
+      const type = drawer.dataset.favoritesDrawer;
+      const toggle = $(type === 'tokenRows' ? 'tokenFavoritesToggle' : 'budgetFavoritesToggle');
+      toggle?.addEventListener('click', () => toggleFavoritesDrawer(type));
     });
     $('settingsSubnav')?.addEventListener('click', event => {
       const button = event.target.closest('[data-settings-target]');
