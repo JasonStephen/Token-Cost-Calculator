@@ -325,14 +325,14 @@
       const oldHit = percent(valueOr(saved.estimateHit, DEFAULT.tokenConfig.hit));
       const oldTokenRows = Array.isArray(saved.tokenRows) ? saved.tokenRows : (Array.isArray(saved.scenarios) ? saved.scenarios : []);
       const oldBudgetRows = Array.isArray(saved.budgetRows) ? saved.budgetRows : (Array.isArray(saved.scenarios) ? saved.scenarios : []);
-      if (![3, 4, 5, 6, 7, 8, 9, 10, 11].includes(saved.stateVersion)) {
+      if (![3, 4, 5, 6, 7, 8, 9, 10, 11, 12].includes(saved.stateVersion)) {
         const firstToken = oldTokenRows[0] || {};
         const firstBudget = oldBudgetRows[0] || {};
         saved.tokenConfig = {ratio:oldRatio, hit:oldHit, total:valueOr(firstToken.total, 100), multiplier:valueOr(firstToken.multiplier, .04), shared:{ratio:true, hit:true, total:true, multiplier:true}};
         saved.budgetConfig = {ratio:oldRatio, hit:oldHit, budget:valueOr(firstBudget.budget, 100), multiplier:valueOr(firstBudget.multiplier, .04), shared:{ratio:true, hit:true, budget:true, multiplier:true}};
         saved.tokenRows = oldTokenRows.map(row => ({ratio:oldRatio, hit:oldHit, total:valueOr(row.total, 100), multiplier:valueOr(row.multiplier, .04)}));
         saved.budgetRows = oldBudgetRows.map(row => ({ratio:oldRatio, hit:oldHit, budget:valueOr(row.budget, 100), multiplier:valueOr(row.multiplier, .04)}));
-        saved.stateVersion = 11;
+        saved.stateVersion = 12;
       }
       saved.comparisonMultiplier = valueOr(saved.comparisonMultiplier, valueOr(saved.multiplier, DEFAULT.comparisonMultiplier));
       saved.comparisonFxRate = valueOr(saved.comparisonFxRate, valueOr(saved.fxRate, DEFAULT.comparisonFxRate));
@@ -345,7 +345,7 @@
         shared:DEFAULT.comparisonConfig.shared
       };
       const comparisonConfig = normalizeConfig(saved.comparisonConfig, comparisonFallback, 'comparison');
-      saved.stateVersion = 11;
+      saved.stateVersion = 12;
       const usedIds = new Set();
       const bundledDefaults = new Map(DEFAULT.models.map(model => [String(model.id || model.name || '').toLowerCase(), model]));
       const storedModels = (Array.isArray(saved.models) && saved.models.length ? saved.models : clone(DEFAULT.models)).map(model => {
@@ -420,6 +420,24 @@
       });
       const tokenRowModelIds = normalizeRowModelIds(saved.tokenRows, tokenSelectedModelIds);
       const budgetRowModelIds = normalizeRowModelIds(saved.budgetRows, budgetSelectedModelIds);
+      const normalizeFavorites = (source, type, fallbackIds) => (Array.isArray(source) ? source : []).map((favorite, index) => {
+        const raw = favorite && typeof favorite.row === 'object' ? favorite.row : favorite;
+        const row = {};
+        const fallbackConfig = type === 'tokenRows' ? tokenConfig : budgetConfig;
+        fieldsFor(type).forEach(field => {
+          const convert = field.converter || num;
+          row[field.key] = convert(valueOr(raw && raw[field.key], fallbackConfig[field.key]));
+        });
+        const sourceIds = Array.isArray(favorite && favorite.modelIds) ? favorite.modelIds : (Array.isArray(raw && raw.modelIds) ? raw.modelIds : fallbackIds);
+        return {
+          id:String(favorite && favorite.id || type + '-favorite-' + (index + 1)),
+          title:String(favorite && favorite.title || (type === 'tokenRows' ? 'Token favorite ' : 'Budget favorite ') + (index + 1)),
+          row,
+          modelIds:[...new Set(sourceIds.map(resolveModelId).filter(id => id && models.some(model => model.id === id && modelEnabled(model))))]
+        };
+      });
+      const tokenFavorites = normalizeFavorites(saved.tokenFavorites, 'tokenRows', tokenSelectedModelIds);
+      const budgetFavorites = normalizeFavorites(saved.budgetFavorites, 'budgetRows', budgetSelectedModelIds);
       const comparisonSelectedModelIds = Array.isArray(saved.comparisonSelectedModelIds)
         ? [...new Set(saved.comparisonSelectedModelIds.map(resolveModelId).filter(id => id && models.some(model => model.id === id && modelEnabled(model))))]
         : models.filter(modelEnabled).map(model => model.id);
@@ -434,7 +452,7 @@
         comparisonUnit:normalizeTokenUnit(saved.comparisonUnit, normalizeTokenUnit(DEFAULT.comparisonUnit)),
         tokenUnit:normalizeTokenUnit(saved.tokenUnit, normalizeTokenUnit(DEFAULT.tokenUnit)),
         budgetUnit:normalizeTokenUnit(saved.budgetUnit, normalizeTokenUnit(DEFAULT.budgetUnit)),
-          sidebarCollapsed:Boolean(saved.sidebarCollapsed), showHostedModels:Boolean(saved.showHostedModels), settingsSection:['general', 'models', 'about', 'reset'].includes(saved.settingsSection) ? saved.settingsSection : 'general', stateVersion:11,
+          sidebarCollapsed:Boolean(saved.sidebarCollapsed), showHostedModels:Boolean(saved.showHostedModels), settingsSection:['general', 'models', 'about', 'reset'].includes(saved.settingsSection) ? saved.settingsSection : 'general', stateVersion:12,
          onboardingVersion:Number.isFinite(Number(saved.onboardingVersion)) ? Number(saved.onboardingVersion) : 0,
          onboardingStatus:saved.onboardingStatus === 'complete' ? 'complete' : 'pending',
          onboardingProviders,
@@ -448,6 +466,8 @@
          tokenModelsShared:typeof saved.tokenModelsShared === 'boolean' ? saved.tokenModelsShared : true,
          budgetModelsShared:typeof saved.budgetModelsShared === 'boolean' ? saved.budgetModelsShared : true,
          modelSwitchPolicy:['prompt', 'preserve', 'overwrite'].includes(saved.modelSwitchPolicy) ? saved.modelSwitchPolicy : 'prompt',
+         tokenFavorites,
+         budgetFavorites,
         multiplierCalc: (() => {
           const calc = saved.multiplierCalc && typeof saved.multiplierCalc === 'object' ? saved.multiplierCalc : {};
           return {
@@ -1524,6 +1544,61 @@
       }
       applyModelSharing(type, enabled, 'preserve');
     }
+    function favoriteKey(type) { return type === 'tokenRows' ? 'tokenFavorites' : 'budgetFavorites'; }
+    function favoriteTitle(type, index) {
+      return t(type === 'tokenRows' ? 'favorites.tokenDefault' : 'favorites.budgetDefault', {number:index + 1});
+    }
+    function favoriteRow(type, row) {
+      const result = {};
+      fieldsFor(type).forEach(field => { result[field.key] = num(scenarioValue(type, row, field.key)); });
+      result.modelIds = [...rowModelIds(type, row)];
+      return result;
+    }
+    function renderFavorites() {
+      ['tokenRows', 'budgetRows'].forEach(type => {
+        const root = $(type === 'tokenRows' ? 'tokenFavoritesList' : 'budgetFavoritesList');
+        if (!root) return;
+        const items = state?.[favoriteKey(type)] || [];
+        root.innerHTML = items.length ? items.map(favorite =>
+          '<div class="favorite-item"><button class="favorite-insert" type="button" data-favorite-insert="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '"><span>' + escapeHtml(favorite.title) + '</span><small>' + escapeHtml(t('favorites.insert')) + '</small></button><button class="favorite-delete" type="button" data-favorite-delete="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.delete')) + '" title="' + escapeHtml(t('favorites.delete')) + '">×</button></div>'
+        ).join('') : '<p class="favorites-empty">' + escapeHtml(t('favorites.empty')) + '</p>';
+      });
+    }
+    function saveFavorite(type, index) {
+      const row = state[type]?.[index];
+      if (!row) return;
+      const favorites = state[favoriteKey(type)] || (state[favoriteKey(type)] = []);
+      const favorite = {id:type + '-favorite-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7), title:favoriteTitle(type, favorites.length), row:favoriteRow(type, row), modelIds:[...(Array.isArray(row.modelIds) ? row.modelIds : state[selectedKey(type)] || [])]};
+      favorites.push(favorite);
+      renderFavorites();
+      save();
+    }
+    function insertFavorite(type, id) {
+      const favorite = (state[favoriteKey(type)] || []).find(item => item.id === id);
+      if (!favorite) return;
+      const config = configFor(type);
+      const row = {...favorite.row, modelIds:[...(favorite.modelIds || favorite.row?.modelIds || [])]};
+      fieldsFor(type).forEach(field => {
+        if (config.shared[field.key] && Math.abs(num(config[field.key]) - num(row[field.key])) > 1e-9) config.shared[field.key] = false;
+      });
+      if (modelsShared(type) && !sameModelIds(state[selectedKey(type)], row.modelIds)) state[sharedKey(type)] = false;
+      state[type].push(row);
+      ensureSelection(type);
+      renderScenarioConfig(type);
+      renderModelFilter(type);
+      if (type === 'tokenRows') renderTokenRows(); else renderBudgetRows();
+      renderFavorites();
+      save();
+      setActiveView(type === 'tokenRows' ? 'tokenCost' : 'budget');
+    }
+    function deleteFavorite(type, id) {
+      const favorites = state[favoriteKey(type)] || [];
+      const favorite = favorites.find(item => item.id === id);
+      if (!favorite || !confirm(t('favorites.deleteConfirm', {title:favorite.title}))) return;
+      state[favoriteKey(type)] = favorites.filter(item => item.id !== id);
+      renderFavorites();
+      save();
+    }
     function modelSelectionGroups() {
       const groups = new Map();
       enabledModels().forEach(model => {
@@ -1818,6 +1893,9 @@
       root.querySelectorAll('[data-row-model-selection]').forEach(el => el.addEventListener('click', event => {
         openModelSelection(event.currentTarget.dataset.rowModelSelection, Number(event.currentTarget.dataset.rowIndex));
       }));
+      root.querySelectorAll('[data-save-favorite]').forEach(el => el.addEventListener('click', event => {
+        saveFavorite(event.currentTarget.dataset.saveFavorite, Number(event.currentTarget.dataset.favoriteRow));
+      }));
     }
     function prepareTable(root, fields, models) {
       root.style.gridTemplateColumns = ['72px', ...fields.map(() => 'minmax(132px, 1fr)'), ...models.map(() => 'minmax(190px, 1fr)')].join(' ');
@@ -1836,7 +1914,7 @@
         const total = scenarioValue('tokenRows', row, 'total');
         const multiplier = scenarioValue('tokenRows', row, 'multiplier');
         const fxRate = scenarioValue('tokenRows', row, 'fxRate');
-        const controls = '<div class="scenario-cell scenario-number">' + (index + 1) + '<button class="scenario-remove" data-remove-type="tokenRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '">×</button></div>' + fields.map(field => scenarioNumberInput('tokenRows', index, field, row[field.key])).join('');
+        const controls = '<div class="scenario-cell scenario-number">' + (index + 1) + '<button class="row-favorite" type="button" data-save-favorite="tokenRows" data-favorite-row="' + index + '" title="' + escapeHtml(t('action.saveFavorite')) + '" aria-label="' + escapeHtml(t('action.saveFavorite')) + '">☆</button><button class="scenario-remove" data-remove-type="tokenRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '">×</button></div>' + fields.map(field => scenarioNumberInput('tokenRows', index, field, row[field.key])).join('');
          const results = models.length ? models.map(model => '<div class="scenario-cell scenario-result">' + modelBadge(model, true) + '<span>' + money(cost(model, total, usage, multiplier), fxRate) + '</span><em>' + t('scenario.perHundredMillion', {cost:money(cost(model, 100, usage, multiplier), fxRate)}) + '</em></div>').join('') : '<div class="scenario-row-empty">' + escapeHtml(t('scenario.noModels')) + '</div>';
          const modelButton = modelsShared('tokenRows') ? '' : '<button class="row-model-select" type="button" data-row-model-selection="tokenRows" data-row-index="' + index + '">' + escapeHtml(t('filter.modelSelect')) + ' <span>(' + models.length + ')</span></button>';
          return '<article class="scenario-entry"><div class="scenario-row-inputs">' + controls + modelButton + '</div><div class="scenario-result-scroll"><div class="scenario-result-list">' + results + '</div></div></article>';
@@ -1859,7 +1937,7 @@
         const budget = scenarioValue('budgetRows', row, 'budget');
         const multiplier = scenarioValue('budgetRows', row, 'multiplier');
         const fxRate = scenarioValue('budgetRows', row, 'fxRate');
-        const controls = '<div class="scenario-cell scenario-number">' + (index + 1) + '<button class="scenario-remove" data-remove-type="budgetRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '">×</button></div>' + fields.map(field => scenarioNumberInput('budgetRows', index, field, row[field.key])).join('');
+        const controls = '<div class="scenario-cell scenario-number">' + (index + 1) + '<button class="row-favorite" type="button" data-save-favorite="budgetRows" data-favorite-row="' + index + '" title="' + escapeHtml(t('action.saveFavorite')) + '" aria-label="' + escapeHtml(t('action.saveFavorite')) + '">☆</button><button class="scenario-remove" data-remove-type="budgetRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '">×</button></div>' + fields.map(field => scenarioNumberInput('budgetRows', index, field, row[field.key])).join('');
         const budgetUsd = budget / (state.currency === 'CNY' ? num(fxRate) : 1);
          const results = models.length ? models.map(model => {
            const perM = cost(model, 1, usage, multiplier);
@@ -1885,7 +1963,7 @@
       const earnedUsd = toUsd(state.multiplierCalc.earned, state.multiplierCalc.earnedCurrency);
       $('multiplierOut').textContent = earnedUsd ? (spentUsd / earnedUsd).toLocaleString('zh-CN', {maximumFractionDigits:4}) : '--';
       if (renderModelComparison) { renderComparisonConfig(); renderComparison(); }
-      renderScenario(); renderSettingsModelList(); save();
+      renderScenario(); renderFavorites(); renderSettingsModelList(); save();
     }
     bindStructureInput('cache','cache'); bindStructureInput('input','input'); bindStructureInput('output','output'); bind('knownRatio','knownRatio'); bind('knownHit','knownHit',percent);
     $('multSpent').addEventListener('input', event => { state.multiplierCalc.spent = num(event.target.value); update(); });
@@ -2265,6 +2343,12 @@
       button.addEventListener('click', () => {
         setActiveView(button.dataset.viewTarget);
       });
+    });
+    $('favoritesPanel')?.addEventListener('click', event => {
+      const insert = event.target.closest('[data-favorite-insert]');
+      if (insert) return insertFavorite(insert.dataset.favoriteInsert, insert.dataset.favoriteId);
+      const remove = event.target.closest('[data-favorite-delete]');
+      if (remove) deleteFavorite(remove.dataset.favoriteDelete, remove.dataset.favoriteId);
     });
     $('settingsSubnav')?.addEventListener('click', event => {
       const button = event.target.closest('[data-settings-target]');

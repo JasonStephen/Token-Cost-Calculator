@@ -1,5 +1,5 @@
 {
-  "stateVersion": 11,
+  "stateVersion": 12,
   "currency": "CNY",
   "language": "zh-CN",
   "theme": "system",
@@ -52,6 +52,8 @@
   "tokenModelsShared": true,
   "budgetModelsShared": true,
   "modelSwitchPolicy": "prompt",
+  "tokenFavorites": [],
+  "budgetFavorites": [],
   "multiplierCalc": {"spent": 100, "spentCurrency": "USD", "earned": 200, "earnedCurrency": "CNY", "fxRate": 7.2},
   "models": [
     {

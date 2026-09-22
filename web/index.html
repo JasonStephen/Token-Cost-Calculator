@@ -21,6 +21,11 @@
             <button class="sidebar-nav-item" type="button" data-view-target="tokenCost"><span aria-hidden="true">③</span><span data-i18n="sidebar.tokenCost">Tokens to cost</span></button>
             <button class="sidebar-nav-item" type="button" data-view-target="budget"><span aria-hidden="true">④</span><span data-i18n="sidebar.budget">Budget to tokens</span></button>
           </nav>
+          <section class="favorites-panel" id="favoritesPanel" aria-labelledby="favoritesTitle">
+            <div class="favorites-heading"><h2 id="favoritesTitle" data-i18n="favorites.title">Favorites</h2><span data-i18n="favorites.hint">Quick insert saved rows</span></div>
+            <div class="favorites-group" data-favorites-group="tokenRows"><h3 data-i18n="section.tokenCost.title">Tokens to Cost</h3><div class="favorites-list" id="tokenFavoritesList"></div></div>
+            <div class="favorites-group" data-favorites-group="budgetRows"><h3 data-i18n="section.budget.title">Budget to Tokens</h3><div class="favorites-list" id="budgetFavoritesList"></div></div>
+          </section>
           <nav class="settings-global-nav" id="settingsSubnav" aria-label="Settings sections" data-i18n-aria-label="settings.sidebar">
             <button class="settings-subnav-item is-active" type="button" data-settings-target="general" aria-controls="settingsGeneralSection" aria-current="page"><span aria-hidden="true">01</span><span data-i18n="settings.general">General</span></button>
             <button class="settings-subnav-item" type="button" data-settings-target="models" aria-controls="settingsModelsSection"><span aria-hidden="true">02</span><span data-i18n="settings.models">Model management</span></button>
