@@ -22,9 +22,11 @@
     let sidebarWasNarrow = window.innerWidth <= 740;
     let settingsProviderSelection = new Set();
     let modelSelectionType = null;
+    let modelSelectionRowIndex = null;
     let modelSelectionDraft = new Set();
     let modelSelectionProvider = '';
     let modelSelectionPanel = 'select';
+    let pendingModelSwitch = null;
     let onboardingStep = 0;
     let onboardingSubmitting = false;
     let onboardingTransitioning = false;
@@ -271,7 +273,7 @@
         const multiplier = scenarioValue('budgetRows', row, 'multiplier');
         const fxRate = scenarioValue('budgetRows', row, 'fxRate');
         const budgetUsd = budget / (state.currency === 'CNY' ? num(fxRate) : 1);
-        return selectedModels('budgetRows').map(model => {
+        return selectedModels('budgetRows', row).map(model => {
           const perM = cost(model, 1, usage, multiplier);
           return perM ? budgetUsd / perM : 0;
         });
@@ -323,14 +325,14 @@
       const oldHit = percent(valueOr(saved.estimateHit, DEFAULT.tokenConfig.hit));
       const oldTokenRows = Array.isArray(saved.tokenRows) ? saved.tokenRows : (Array.isArray(saved.scenarios) ? saved.scenarios : []);
       const oldBudgetRows = Array.isArray(saved.budgetRows) ? saved.budgetRows : (Array.isArray(saved.scenarios) ? saved.scenarios : []);
-      if (![3, 4, 5, 6, 7, 8, 9, 10].includes(saved.stateVersion)) {
+      if (![3, 4, 5, 6, 7, 8, 9, 10, 11].includes(saved.stateVersion)) {
         const firstToken = oldTokenRows[0] || {};
         const firstBudget = oldBudgetRows[0] || {};
         saved.tokenConfig = {ratio:oldRatio, hit:oldHit, total:valueOr(firstToken.total, 100), multiplier:valueOr(firstToken.multiplier, .04), shared:{ratio:true, hit:true, total:true, multiplier:true}};
         saved.budgetConfig = {ratio:oldRatio, hit:oldHit, budget:valueOr(firstBudget.budget, 100), multiplier:valueOr(firstBudget.multiplier, .04), shared:{ratio:true, hit:true, budget:true, multiplier:true}};
         saved.tokenRows = oldTokenRows.map(row => ({ratio:oldRatio, hit:oldHit, total:valueOr(row.total, 100), multiplier:valueOr(row.multiplier, .04)}));
         saved.budgetRows = oldBudgetRows.map(row => ({ratio:oldRatio, hit:oldHit, budget:valueOr(row.budget, 100), multiplier:valueOr(row.multiplier, .04)}));
-        saved.stateVersion = 10;
+        saved.stateVersion = 11;
       }
       saved.comparisonMultiplier = valueOr(saved.comparisonMultiplier, valueOr(saved.multiplier, DEFAULT.comparisonMultiplier));
       saved.comparisonFxRate = valueOr(saved.comparisonFxRate, valueOr(saved.fxRate, DEFAULT.comparisonFxRate));
@@ -343,7 +345,7 @@
         shared:DEFAULT.comparisonConfig.shared
       };
       const comparisonConfig = normalizeConfig(saved.comparisonConfig, comparisonFallback, 'comparison');
-      saved.stateVersion = 10;
+      saved.stateVersion = 11;
       const usedIds = new Set();
       const bundledDefaults = new Map(DEFAULT.models.map(model => [String(model.id || model.name || '').toLowerCase(), model]));
       const storedModels = (Array.isArray(saved.models) && saved.models.length ? saved.models : clone(DEFAULT.models)).map(model => {
@@ -410,6 +412,14 @@
         const source = Array.isArray(saved[key]) ? saved[key] : legacySelected;
         return [...new Set(source.map(resolveModelId).filter(id => id && models.some(model => model.id === id && modelEnabled(model))))];
       };
+      const tokenSelectedModelIds = selectionFor('tokenSelectedModelIds');
+      const budgetSelectedModelIds = selectionFor('budgetSelectedModelIds');
+      const normalizeRowModelIds = (rows, fallback) => (Array.isArray(rows) ? rows : []).map(row => {
+        const source = Array.isArray(row && row.modelIds) ? row.modelIds : fallback;
+        return [...new Set(source.map(resolveModelId).filter(id => id && models.some(model => model.id === id && modelEnabled(model))))];
+      });
+      const tokenRowModelIds = normalizeRowModelIds(saved.tokenRows, tokenSelectedModelIds);
+      const budgetRowModelIds = normalizeRowModelIds(saved.budgetRows, budgetSelectedModelIds);
       const comparisonSelectedModelIds = Array.isArray(saved.comparisonSelectedModelIds)
         ? [...new Set(saved.comparisonSelectedModelIds.map(resolveModelId).filter(id => id && models.some(model => model.id === id && modelEnabled(model))))]
         : models.filter(modelEnabled).map(model => model.id);
@@ -424,17 +434,20 @@
         comparisonUnit:normalizeTokenUnit(saved.comparisonUnit, normalizeTokenUnit(DEFAULT.comparisonUnit)),
         tokenUnit:normalizeTokenUnit(saved.tokenUnit, normalizeTokenUnit(DEFAULT.tokenUnit)),
         budgetUnit:normalizeTokenUnit(saved.budgetUnit, normalizeTokenUnit(DEFAULT.budgetUnit)),
-         sidebarCollapsed:Boolean(saved.sidebarCollapsed), showHostedModels:Boolean(saved.showHostedModels), settingsSection:['general', 'models', 'about', 'reset'].includes(saved.settingsSection) ? saved.settingsSection : 'general', stateVersion:10,
+          sidebarCollapsed:Boolean(saved.sidebarCollapsed), showHostedModels:Boolean(saved.showHostedModels), settingsSection:['general', 'models', 'about', 'reset'].includes(saved.settingsSection) ? saved.settingsSection : 'general', stateVersion:11,
          onboardingVersion:Number.isFinite(Number(saved.onboardingVersion)) ? Number(saved.onboardingVersion) : 0,
          onboardingStatus:saved.onboardingStatus === 'complete' ? 'complete' : 'pending',
          onboardingProviders,
          onboardingOnlineSync:typeof saved.onboardingOnlineSync === 'boolean' ? saved.onboardingOnlineSync : true,
          onboardingFullCatalog:typeof saved.onboardingFullCatalog === 'boolean' ? saved.onboardingFullCatalog : Boolean(saved.showHostedModels),
-         tokenRows:normalizeRows(saved.tokenRows, 'tokenRows', tokenConfig),
-        budgetRows:normalizeRows(saved.budgetRows, 'budgetRows', budgetConfig),
-         comparisonSelectedModelIds,
-        tokenSelectedModelIds:selectionFor('tokenSelectedModelIds'),
-        budgetSelectedModelIds:selectionFor('budgetSelectedModelIds'),
+          tokenRows:normalizeRows(saved.tokenRows, 'tokenRows', tokenConfig).map((row, index) => ({...row, modelIds:tokenRowModelIds[index] || [...tokenSelectedModelIds]})),
+         budgetRows:normalizeRows(saved.budgetRows, 'budgetRows', budgetConfig).map((row, index) => ({...row, modelIds:budgetRowModelIds[index] || [...budgetSelectedModelIds]})),
+          comparisonSelectedModelIds,
+         tokenSelectedModelIds,
+         budgetSelectedModelIds,
+         tokenModelsShared:typeof saved.tokenModelsShared === 'boolean' ? saved.tokenModelsShared : true,
+         budgetModelsShared:typeof saved.budgetModelsShared === 'boolean' ? saved.budgetModelsShared : true,
+         modelSwitchPolicy:['prompt', 'preserve', 'overwrite'].includes(saved.modelSwitchPolicy) ? saved.modelSwitchPolicy : 'prompt',
         multiplierCalc: (() => {
           const calc = saved.multiplierCalc && typeof saved.multiplierCalc === 'object' ? saved.multiplierCalc : {};
           return {
@@ -1422,11 +1435,17 @@
       pendingModelConfigId = null;
     }
     function selectedKey(type) { return type === 'tokenRows' ? 'tokenSelectedModelIds' : 'budgetSelectedModelIds'; }
+    function sharedKey(type) { return type === 'tokenRows' ? 'tokenModelsShared' : 'budgetModelsShared'; }
+    function modelsShared(type) { return Boolean(state && state[sharedKey(type)]); }
     function modelsBySelection(ids) {
       const models = new Map(enabledModels().map(model => [model.id, model]));
       return (ids || []).map(id => models.get(id)).filter(Boolean);
     }
-    function selectedModels(type) { return modelsBySelection(state[selectedKey(type)]); }
+    function rowModelIds(type, row) {
+      if (modelsShared(type)) return state[selectedKey(type)] || [];
+      return Array.isArray(row && row.modelIds) ? row.modelIds : [];
+    }
+    function selectedModels(type, row) { return modelsBySelection(rowModelIds(type, row)); }
     function ensureComparisonSelection() {
       const key = 'comparisonSelectedModelIds';
       state[key] = [...new Set((state[key] || []).filter(id => state.models.some(model => model.id === id && modelEnabled(model))))];
@@ -1444,13 +1463,66 @@
     function ensureSelection(type) {
       const key = selectedKey(type);
       state[key] = [...new Set((state[key] || []).filter(id => state.models.some(model => model.id === id && modelEnabled(model))))];
+      const rows = state[type] || [];
+      rows.forEach(row => {
+        row.modelIds = [...new Set((Array.isArray(row.modelIds) ? row.modelIds : state[key]).filter(id => state.models.some(model => model.id === id && modelEnabled(model))))];
+      });
     }
     function renderModelFilter(type) {
       ensureSelection(type);
       const key = selectedKey(type);
       const root = $(type === 'tokenRows' ? 'tokenModelFilter' : 'budgetModelFilter');
-      root.innerHTML = '<button class="model-select-btn" type="button" data-model-selection="' + type + '" data-i18n="filter.modelSelect" aria-haspopup="dialog">' + t('filter.modelSelect') + '</button>';
+      if (!root) return;
+      root.innerHTML = modelsShared(type)
+        ? '<button class="model-select-btn" type="button" data-model-selection="' + type + '" aria-haspopup="dialog">' + escapeHtml(t('filter.modelSelect')) + ' <span class="model-filter-count">(' + state[key].length + ')</span></button>'
+        : '<span class="model-filter-mode-note">' + escapeHtml(t('action.perRowModels')) + '</span>';
       root.querySelector('[data-model-selection]')?.addEventListener('click', () => openModelSelection(type));
+      const toggle = $(type === 'tokenRows' ? 'tokenModelsShared' : 'budgetModelsShared');
+      const edit = $(type === 'tokenRows' ? 'tokenModelEdit' : 'budgetModelEdit');
+      if (toggle) toggle.checked = modelsShared(type);
+      if (edit) edit.hidden = !modelsShared(type);
+    }
+    function sameModelIds(a, b) {
+      const left = [...new Set(a || [])];
+      const right = [...new Set(b || [])];
+      return left.length === right.length && left.every(id => right.includes(id));
+    }
+    function rowModelSelectionsDiffer(type) {
+      const shared = state[selectedKey(type)] || [];
+      return (state[type] || []).some(row => !sameModelIds(row.modelIds, shared));
+    }
+    function copySharedModelsToRows(type) {
+      const shared = [...(state[selectedKey(type)] || [])];
+      (state[type] || []).forEach(row => { row.modelIds = [...shared]; });
+    }
+    function applyModelSharing(type, enabled, choice='preserve') {
+      const key = selectedKey(type);
+      if (!enabled && choice === 'overwrite') copySharedModelsToRows(type);
+      if (enabled) {
+        const first = state[type]?.[0];
+        state[key] = first && Array.isArray(first.modelIds) ? [...first.modelIds] : [...(state[key] || [])];
+      }
+      state[sharedKey(type)] = enabled;
+      ensureSelection(type);
+      renderModelFilter(type);
+      if (type === 'tokenRows') renderTokenRows(); else renderBudgetRows();
+      save();
+    }
+    function openModelSwitchDialog(type, enabled) {
+      pendingModelSwitch = {type, enabled};
+      document.querySelectorAll('input[name="modelSwitchChoice"]').forEach(input => { input.checked = input.value === 'preserve'; });
+      const remember = $('modelSwitchRemember');
+      if (remember) remember.checked = false;
+      $('modelSwitchDialog')?.showModal();
+    }
+    function requestModelSharing(type, enabled) {
+      if (!state || modelsShared(type) === enabled) return;
+      if (!enabled && rowModelSelectionsDiffer(type)) {
+        const policy = ['prompt', 'preserve', 'overwrite'].includes(state.modelSwitchPolicy) ? state.modelSwitchPolicy : 'prompt';
+        if (policy === 'prompt') return openModelSwitchDialog(type, enabled);
+        return applyModelSharing(type, enabled, policy);
+      }
+      applyModelSharing(type, enabled, 'preserve');
     }
     function modelSelectionGroups() {
       const groups = new Map();
@@ -1552,11 +1624,14 @@
         renderModelSelectionDialog();
       }));
     }
-    function openModelSelection(type) {
+    function openModelSelection(type, rowIndex=null) {
       if (!state) return;
       modelSelectionType = type;
+      modelSelectionRowIndex = type === 'tokenRows' || type === 'budgetRows' ? (Number.isInteger(rowIndex) ? rowIndex : null) : null;
       const key = type === 'comparison' ? 'comparisonSelectedModelIds' : selectedKey(type);
-      modelSelectionDraft = new Set(state[key] || []);
+      const row = modelSelectionRowIndex === null ? null : state[type]?.[modelSelectionRowIndex];
+      const ids = modelSelectionRowIndex !== null && !modelsShared(type) ? row?.modelIds : state[key];
+      modelSelectionDraft = new Set(ids || []);
       modelSelectionProvider = '';
       modelSelectionPanel = 'select';
       renderModelSelectionDialog();
@@ -1565,6 +1640,7 @@
     function closeModelSelection() {
       $('modelSelectionDialog')?.close();
       modelSelectionType = null;
+      modelSelectionRowIndex = null;
       modelSelectionDraft = new Set();
       modelSelectionProvider = '';
       modelSelectionPanel = 'select';
@@ -1579,7 +1655,12 @@
         renderComparisonFilter();
       } else {
         const key = selectedKey(modelSelectionType);
-        state[key] = selected;
+        if (modelSelectionRowIndex !== null && !modelsShared(modelSelectionType)) {
+          const row = state[modelSelectionType]?.[modelSelectionRowIndex];
+          if (row) row.modelIds = selected;
+        } else {
+          state[key] = selected;
+        }
         ensureSelection(modelSelectionType);
         if (modelSelectionType === 'tokenRows') renderTokenRows(); else renderBudgetRows();
         renderModelFilter(modelSelectionType);
@@ -1727,9 +1808,15 @@
       }));
       root.querySelectorAll('[data-create-row]').forEach(el => el.addEventListener('click', event => {
         const type = event.currentTarget.dataset.createRow;
-        state[type].push(newRow(type, configFor(type)));
+        const previous = state[type].length ? state[type][state[type].length - 1] : null;
+        const row = newRow(type, configFor(type));
+        row.modelIds = modelsShared(type) ? [...(state[selectedKey(type)] || [])] : [...(previous && Array.isArray(previous.modelIds) ? previous.modelIds : (state[selectedKey(type)] || []))];
+        state[type].push(row);
         if (type === 'tokenRows') renderTokenRows(); else renderBudgetRows();
         save();
+      }));
+      root.querySelectorAll('[data-row-model-selection]').forEach(el => el.addEventListener('click', event => {
+        openModelSelection(event.currentTarget.dataset.rowModelSelection, Number(event.currentTarget.dataset.rowIndex));
       }));
     }
     function prepareTable(root, fields, models) {
@@ -1743,15 +1830,16 @@
         return;
       }
       const fields = fieldsFor('tokenRows').filter(field => !config.shared[field.key]);
-      const models = selectedModels('tokenRows');
-      const entries = state.tokenRows.map((row, index) => {
+        const entries = state.tokenRows.map((row, index) => {
+          const models = selectedModels('tokenRows', row);
         const usage = {ratio:scenarioValue('tokenRows', row, 'ratio'), hit:scenarioValue('tokenRows', row, 'hit')};
         const total = scenarioValue('tokenRows', row, 'total');
         const multiplier = scenarioValue('tokenRows', row, 'multiplier');
         const fxRate = scenarioValue('tokenRows', row, 'fxRate');
         const controls = '<div class="scenario-cell scenario-number">' + (index + 1) + '<button class="scenario-remove" data-remove-type="tokenRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '">×</button></div>' + fields.map(field => scenarioNumberInput('tokenRows', index, field, row[field.key])).join('');
-        const results = models.map(model => '<div class="scenario-cell scenario-result">' + modelBadge(model, true) + '<span>' + money(cost(model, total, usage, multiplier), fxRate) + '</span><em>' + t('scenario.perHundredMillion', {cost:money(cost(model, 100, usage, multiplier), fxRate)}) + '</em></div>').join('');
-        return '<article class="scenario-entry"><div class="scenario-row-inputs">' + controls + '</div><div class="scenario-result-scroll"><div class="scenario-result-list">' + results + '</div></div></article>';
+         const results = models.length ? models.map(model => '<div class="scenario-cell scenario-result">' + modelBadge(model, true) + '<span>' + money(cost(model, total, usage, multiplier), fxRate) + '</span><em>' + t('scenario.perHundredMillion', {cost:money(cost(model, 100, usage, multiplier), fxRate)}) + '</em></div>').join('') : '<div class="scenario-row-empty">' + escapeHtml(t('scenario.noModels')) + '</div>';
+         const modelButton = modelsShared('tokenRows') ? '' : '<button class="row-model-select" type="button" data-row-model-selection="tokenRows" data-row-index="' + index + '">' + escapeHtml(t('filter.modelSelect')) + ' <span>(' + models.length + ')</span></button>';
+         return '<article class="scenario-entry"><div class="scenario-row-inputs">' + controls + modelButton + '</div><div class="scenario-result-scroll"><div class="scenario-result-list">' + results + '</div></div></article>';
       }).join('');
       root.innerHTML = '<div class="scenario-entry-list">' + entries + '</div>';
       bindScenarioRows(root);
@@ -1764,20 +1852,21 @@
         return;
       }
       const fields = fieldsFor('budgetRows').filter(field => !config.shared[field.key]);
-      const models = selectedModels('budgetRows');
-      const resultUnit = scenarioTokenUnit('budgetRows');
-      const entries = state.budgetRows.map((row, index) => {
+        const resultUnit = scenarioTokenUnit('budgetRows');
+        const entries = state.budgetRows.map((row, index) => {
+          const models = selectedModels('budgetRows', row);
         const usage = {ratio:scenarioValue('budgetRows', row, 'ratio'), hit:scenarioValue('budgetRows', row, 'hit')};
         const budget = scenarioValue('budgetRows', row, 'budget');
         const multiplier = scenarioValue('budgetRows', row, 'multiplier');
         const fxRate = scenarioValue('budgetRows', row, 'fxRate');
         const controls = '<div class="scenario-cell scenario-number">' + (index + 1) + '<button class="scenario-remove" data-remove-type="budgetRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '">×</button></div>' + fields.map(field => scenarioNumberInput('budgetRows', index, field, row[field.key])).join('');
         const budgetUsd = budget / (state.currency === 'CNY' ? num(fxRate) : 1);
-        const results = models.map(model => {
-          const perM = cost(model, 1, usage, multiplier);
-          return '<div class="scenario-cell scenario-result">' + modelBadge(model, true) + '<span>' + (perM ? tokens(budgetUsd / perM, resultUnit) : '--') + '</span><em>' + t('scenario.totalByBudget') + '</em></div>';
-        }).join('');
-        return '<article class="scenario-entry"><div class="scenario-row-inputs">' + controls + '</div><div class="scenario-result-scroll"><div class="scenario-result-list">' + results + '</div></div></article>';
+         const results = models.length ? models.map(model => {
+           const perM = cost(model, 1, usage, multiplier);
+           return '<div class="scenario-cell scenario-result">' + modelBadge(model, true) + '<span>' + (perM ? tokens(budgetUsd / perM, resultUnit) : '--') + '</span><em>' + t('scenario.totalByBudget') + '</em></div>';
+         }).join('') : '<div class="scenario-row-empty">' + escapeHtml(t('scenario.noModels')) + '</div>';
+         const modelButton = modelsShared('budgetRows') ? '' : '<button class="row-model-select" type="button" data-row-model-selection="budgetRows" data-row-index="' + index + '">' + escapeHtml(t('filter.modelSelect')) + ' <span>(' + models.length + ')</span></button>';
+         return '<article class="scenario-entry"><div class="scenario-row-inputs">' + controls + modelButton + '</div><div class="scenario-result-scroll"><div class="scenario-result-list">' + results + '</div></div></article>';
       }).join('');
       root.innerHTML = '<div class="scenario-entry-list">' + entries + '</div>';
       bindScenarioRows(root);
@@ -1880,8 +1969,29 @@
     $('modelSelectionDialog')?.addEventListener('click', event => {
       if (event.target === event.currentTarget) closeModelSelection();
     });
+    $('cancelModelSwitch')?.addEventListener('click', () => {
+      $('modelSwitchDialog')?.close();
+      if (pendingModelSwitch) renderModelFilter(pendingModelSwitch.type);
+      pendingModelSwitch = null;
+    });
+    $('confirmModelSwitch')?.addEventListener('click', () => {
+      if (!pendingModelSwitch) return $('modelSwitchDialog')?.close();
+      const choice = document.querySelector('input[name="modelSwitchChoice"]:checked')?.value || 'preserve';
+      const remember = Boolean($('modelSwitchRemember')?.checked);
+      const {type, enabled} = pendingModelSwitch;
+      if (remember) state.modelSwitchPolicy = choice;
+      $('modelSwitchDialog')?.close();
+      pendingModelSwitch = null;
+      applyModelSharing(type, enabled, choice);
+      if ($('modelSwitchPolicy')) $('modelSwitchPolicy').value = state.modelSwitchPolicy;
+    });
+    $('modelSwitchDialog')?.addEventListener('click', event => {
+      if (event.target === event.currentTarget) $('modelSwitchDialog').close();
+    });
+    $('modelSwitchDialog')?.addEventListener('close', () => { pendingModelSwitch = null; });
     $('modelSelectionDialog')?.addEventListener('close', () => {
       modelSelectionType = null;
+      modelSelectionRowIndex = null;
       modelSelectionDraft = new Set();
       modelSelectionProvider = '';
       modelSelectionPanel = 'select';
@@ -1919,6 +2029,10 @@
       renderBudgetRows();
       save();
     };
+    $('tokenModelsShared').onchange = event => requestModelSharing('tokenRows', event.target.checked);
+    $('budgetModelsShared').onchange = event => requestModelSharing('budgetRows', event.target.checked);
+    $('tokenModelEdit').onclick = () => openModelSelection('tokenRows');
+    $('budgetModelEdit').onclick = () => openModelSelection('budgetRows');
     $('currency').onchange=e=>{state.currency=e.target.value; update();};
     $('language').onchange = event => { state.language = window.i18n.setLocale(event.target.value); window.i18n.translateDocument(); renderMobileViewTitle(state.activeView); renderStructureUnit(); renderSettingsModelFilters(); update(); };
     $('showHostedModels').onchange = event => {
@@ -1926,6 +2040,11 @@
       settingsProviderSelection.clear();
       settingsModelPage = 1;
       renderSettingsModelList();
+      save();
+    };
+    $('modelSwitchPolicy').onchange = event => {
+      if (!state) return;
+      state.modelSwitchPolicy = ['prompt', 'preserve', 'overwrite'].includes(event.target.value) ? event.target.value : 'prompt';
       save();
     };
     function mergePricingModels(incoming) {
@@ -2094,8 +2213,8 @@
       if (event.target === event.currentTarget) closeModelAddDialog();
     });
     $('modelAddDialog').addEventListener('close', () => { pendingModelEditId = null; });
-    $('addTokenRow').onclick=()=>{state.tokenRows.push(newRow('tokenRows', state.tokenConfig)); renderTokenRows(); save();};
-    $('addBudgetRow').onclick=()=>{state.budgetRows.push(newRow('budgetRows', state.budgetConfig)); renderBudgetRows(); save();};
+    $('addTokenRow').onclick=()=>{const previous=state.tokenRows.at(-1); const row=newRow('tokenRows', state.tokenConfig); row.modelIds=modelsShared('tokenRows')?[...(state.tokenSelectedModelIds||[])]:[...(previous?.modelIds || state.tokenSelectedModelIds || [])]; state.tokenRows.push(row); renderTokenRows(); save();};
+    $('addBudgetRow').onclick=()=>{const previous=state.budgetRows.at(-1); const row=newRow('budgetRows', state.budgetConfig); row.modelIds=modelsShared('budgetRows')?[...(state.budgetSelectedModelIds||[])]:[...(previous?.modelIds || state.budgetSelectedModelIds || [])]; state.budgetRows.push(row); renderBudgetRows(); save();};
     const resetConfirmDialog = $('resetConfirmDialog');
     const resetTextDialog = $('resetTextDialog');
     const resetConfirmInput = $('resetConfirmInput');
@@ -2193,9 +2312,12 @@
         $('tokenUnit').value = state.tokenUnit;
         $('budgetUnit').value = state.budgetUnit;
         $('currency').value = state.currency;
-        $('language').value = state.language;
-        $('showHostedModels').checked = state.showHostedModels;
-        if ($('theme')) $('theme').value = state.theme;
+         $('language').value = state.language;
+         $('showHostedModels').checked = state.showHostedModels;
+         $('tokenModelsShared').checked = state.tokenModelsShared;
+         $('budgetModelsShared').checked = state.budgetModelsShared;
+         if ($('modelSwitchPolicy')) $('modelSwitchPolicy').value = state.modelSwitchPolicy;
+         if ($('theme')) $('theme').value = state.theme;
         applyTheme(state.theme);
         applySidebarCollapsed(state.sidebarCollapsed || window.innerWidth <= 740, false);
          setSettingsSection(state.settingsSection, false);

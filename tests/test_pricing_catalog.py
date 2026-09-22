@@ -183,6 +183,21 @@ class PricingCatalogTests(unittest.TestCase):
         self.assertNotIn("slice(0, 3)", app_source)
         self.assertNotIn("modelSelectionDraft.size > 1", app_source)
         self.assertNotIn("filter.maxSelected", app_source)
+        self.assertIn('id="tokenModelsShared"', html_source)
+        self.assertIn('id="budgetModelsShared"', html_source)
+        self.assertIn('id="tokenModelEdit"', html_source)
+        self.assertIn('id="budgetModelEdit"', html_source)
+        self.assertIn('id="modelSwitchPolicy"', html_source)
+        self.assertIn('id="modelSwitchDialog"', html_source)
+        self.assertIn("modelIds", app_source)
+        self.assertIn("tokenModelsShared:typeof saved.tokenModelsShared", app_source)
+        self.assertIn("budgetModelsShared:typeof saved.budgetModelsShared", app_source)
+        self.assertIn("stateVersion:11", app_source)
+        self.assertIn("data-row-model-selection", app_source)
+        self.assertIn("scenario.noModels", app_source)
+        self.assertIn("modelSwitchPolicy", app_source)
+        self.assertIn("model-filter-with-sharing", css_source)
+        self.assertIn(".row-model-select", css_source)
 
     def test_batch_launcher_keeps_devtools_manual(self):
         root = Path(__file__).resolve().parents[1]

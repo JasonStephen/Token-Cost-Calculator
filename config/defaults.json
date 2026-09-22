@@ -1,5 +1,5 @@
 {
-  "stateVersion": 10,
+  "stateVersion": 11,
   "currency": "CNY",
   "language": "zh-CN",
   "theme": "system",
@@ -45,10 +45,13 @@
     "fxRate": 7.2,
     "shared": {"ratio": true, "hit": true, "budget": true, "multiplier": true, "fxRate": true}
   },
-  "tokenRows": [{"ratio": 300, "hit": 90, "total": 100, "multiplier": 0.04, "fxRate": 7.2}],
-  "budgetRows": [{"ratio": 300, "hit": 90, "budget": 100, "multiplier": 0.04, "fxRate": 7.2}],
+  "tokenRows": [{"ratio": 300, "hit": 90, "total": 100, "multiplier": 0.04, "fxRate": 7.2, "modelIds": ["sol", "terra", "luna"]}],
+  "budgetRows": [{"ratio": 300, "hit": 90, "budget": 100, "multiplier": 0.04, "fxRate": 7.2, "modelIds": ["sol", "terra", "luna"]}],
   "tokenSelectedModelIds": ["sol", "terra", "luna"],
   "budgetSelectedModelIds": ["sol", "terra", "luna"],
+  "tokenModelsShared": true,
+  "budgetModelsShared": true,
+  "modelSwitchPolicy": "prompt",
   "multiplierCalc": {"spent": 100, "spentCurrency": "USD", "earned": 200, "earnedCurrency": "CNY", "fxRate": 7.2},
   "models": [
     {
