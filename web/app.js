@@ -1851,10 +1851,19 @@
         choicePanel.innerHTML = '';
         orderPanel.hidden = false;
         const orderedModels = modelsBySelection([...modelSelectionDraft]);
-        orderPanel.innerHTML = '<div class="model-selection-panel-label">' + escapeHtml(t('filter.modelOrder')) + '</div><p class="model-selection-order-hint">' + escapeHtml(t('filter.modelOrderHint')) + '</p><div id="modelSelectionOrder">' + (orderedModels.length ? orderedModels.map(model =>
-          '<div class="model-selection-order-item" draggable="true" data-model-order-id="' + escapeHtml(model.id) + '"><span class="model-order-drag-handle" aria-hidden="true">&#8942;</span><span>' + modelBadge(model, true) + '</span></div>'
+        orderPanel.innerHTML = '<div class="model-selection-panel-label">' + escapeHtml(t('filter.modelOrder')) + '<button class="model-order-clear" type="button" data-model-order-clear>' + escapeHtml(t('filter.clearModelOrder')) + '</button></div><p class="model-selection-order-hint">' + escapeHtml(t('filter.modelOrderHint')) + '</p><div id="modelSelectionOrder">' + (orderedModels.length ? orderedModels.map(model =>
+          '<div class="model-selection-order-item" draggable="true" data-model-order-id="' + escapeHtml(model.id) + '"><span class="model-order-drag-handle" aria-hidden="true">&#8942;</span><span>' + modelBadge(model, true) + '</span><button class="model-order-remove" type="button" data-model-order-remove="' + escapeHtml(model.id) + '" title="' + escapeHtml(t('filter.removeModelFromOrder')) + '" aria-label="' + escapeHtml(t('filter.removeModelFromOrder')) + '">×</button></div>'
         ).join('') : '<p class="model-selection-empty">' + t('filter.noModels') + '</p>') + '</div>';
         const orderRoot = $('modelSelectionOrder');
+        orderPanel.querySelector('[data-model-order-clear]')?.addEventListener('click', () => {
+          modelSelectionDraft.clear();
+          renderModelSelectionDialog();
+        });
+        orderRoot?.querySelectorAll('[data-model-order-remove]').forEach(button => button.addEventListener('click', event => {
+          event.stopPropagation();
+          modelSelectionDraft.delete(button.dataset.modelOrderRemove);
+          renderModelSelectionDialog();
+        }));
         orderRoot?.querySelectorAll('[data-model-order-id]').forEach(item => {
           item.addEventListener('dragstart', event => {
             if (!event.dataTransfer) return;
