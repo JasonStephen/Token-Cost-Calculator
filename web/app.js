@@ -105,7 +105,7 @@
         toggle.type = 'button';
         toggle.className = 'icon-btn';
         toggle.dataset.sidebarToggle = 'true';
-        toggle.textContent = '\u2630';
+        toggle.innerHTML = uiIcon('menu');
         toggle.setAttribute('aria-expanded', 'true');
         toggle.setAttribute('aria-label', uiText('sidebar.toggle', 'Toggle navigation', '切换侧边栏'));
         sidebar.querySelector('.sidebar-brand')?.prepend(toggle);
@@ -115,7 +115,7 @@
         home.className = 'sidebar-nav-item';
         home.type = 'button';
         home.dataset.viewTarget = 'home';
-        home.innerHTML = '<span aria-hidden="true">\u2302</span><span>' + (document.documentElement.lang === 'en' ? 'Home' : '\u9996\u9875') + '</span>';
+        home.innerHTML = '<span class="nav-ico" aria-hidden="true">' + uiIcon('home') + '</span><span>' + (document.documentElement.lang === 'en' ? 'Home' : '\u9996\u9875') + '</span>';
         nav.prepend(home);
       }
       const settings = $('openSettings');
@@ -138,10 +138,25 @@
     function setupSidebarViewportBehavior() {
       if (document.body.dataset.sidebarViewportBound) return;
       document.body.dataset.sidebarViewportBound = 'true';
-      window.addEventListener('resize', () => {
-        const isNarrow = window.innerWidth <= 740;
+      const onNarrow = isNarrow => {
         if (isNarrow && !sidebarWasNarrow) applySidebarCollapsed(true);
         sidebarWasNarrow = isNarrow;
+      };
+      const mq = window.matchMedia ? window.matchMedia('(max-width: 740px)') : null;
+      if (mq && mq.addEventListener) {
+        sidebarWasNarrow = mq.matches;
+        mq.addEventListener('change', event => onNarrow(event.matches));
+        return;
+      }
+      if (mq && mq.addListener) {
+        sidebarWasNarrow = mq.matches;
+        mq.addListener(event => onNarrow(event.matches));
+        return;
+      }
+      let resizeTimer;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => onNarrow(window.innerWidth <= 740), 150);
       });
     }
 
@@ -226,7 +241,22 @@
       $('inputUnit').textContent = unit;
       $('outputUnit').textContent = unit;
     }
-    function bindStructureInput(id, key) { $(id).addEventListener('input', event => { state[key] = num(event.target.value) * structureUnitFactor(); update(); }); }
+    function bindStructureInput(id, key) { $(id).addEventListener('input', event => { state[key] = num(event.target.value) * structureUnitFactor(); syncStructureUnitDisplays(); update(); }); }
+    // When the automatic token unit flips (e.g. crossing 1000, M -> B), the
+    // field labels, unit suffixes and the other two inputs' displayed values
+    // must follow. The focused input keeps its caret, so it is skipped.
+    function syncStructureUnitDisplays() {
+      const unit = structureTokenUnit();
+      const fields = [['cache', 'cacheLabel', 'cacheUnit'], ['input', 'inputLabel', 'inputUnit'], ['output', 'outputLabel', 'outputUnit']];
+      fields.forEach(([key, labelId, unitId]) => {
+        const label = $(labelId);
+        if (label) label.textContent = t('structure.' + (key === 'cache' ? 'cacheHit' : key), {unit});
+        const suffix = $(unitId);
+        if (suffix) suffix.textContent = unit;
+        const input = $(key);
+        if (input && input !== document.activeElement) input.value = structureDisplayValue(state[key]);
+      });
+    }
     const SCENARIO_FIELDS = {
       comparison: [
         {key:'ratio', labelKey:'field.inputOutput', unit:': 1', step:'0.1'},
@@ -554,6 +584,11 @@
     function renderMobileViewTitle(view) {
       const title = $('mobileViewTitle');
       if (!title) return;
+      if (view === 'settings') {
+        title.textContent = '';
+        title.hidden = true;
+        return;
+      }
       const section = document.querySelector('[data-view-section="' + view + '"]');
       const source = section && section.querySelector('.section-heading h2 > span:first-child');
       const text = source ? source.textContent.trim() : '';
@@ -992,7 +1027,7 @@
       renderMobileViewTitle(state.activeView);
       renderStructureUnit();
       renderSettingsModelFilters();
-      update();
+      updateFull();
     }
     function hydrateOnboarding(root=onboardingRoot()) {
       if (!root || !state) return;
@@ -1069,7 +1104,7 @@
         state.pricingCatalogInitialized = true;
         state.pricingCatalogFetchedAt = result.fetchedAt || new Date().toISOString();
         applyOnboardingModelSelection();
-        update();
+        updateFull();
         if (result.warning) console.warn(result.warning);
       } catch (error) {
         // The already-installed bundled snapshot remains usable when the network
@@ -1089,7 +1124,7 @@
       installOnboardingSnapshot();
       applyOnboardingModelSelection();
       renderStructureUnit();
-      update();
+      updateFull();
       closeOnboarding(() => { onboardingSubmitting = false; });
       if (state.onboardingOnlineSync) void refreshOnboardingCatalog();
     }
@@ -1175,8 +1210,8 @@
     const dualMoney = (usd, fxRate) => '$' + usd.toLocaleString('zh-CN', {maximumFractionDigits:2}) + ' / ¥' + (usd * num(fxRate)).toLocaleString('zh-CN', {maximumFractionDigits:2});
     const tokens = (amountM, unit='M') => (num(amountM) / tokenUnitFactor(unit)).toLocaleString('zh-CN', {maximumFractionDigits:2}) + ' ' + unit + ' Token';
     function bind(id, key, converter=num) { $(id).addEventListener('input', e => { state[key] = converter(e.target.value); update(); }); }
-    function priceRow(label, key) { return `<div class="cell label-cell">${comparisonLabel(label)}<em class="cell-unit">${comparisonLabel(t('model.customPricing.unit'))}</em></div>${comparisonModels().map(m => `<div class="cell"><input class="price-input" data-model-key="${key}" data-model-id="${m.id}" type="number" min="0" step="0.001" value="${m[key]}"></div>`).join('')}`; }
-    function multipliedPriceRow(label, key) { return `<div class="cell label-cell">${comparisonLabel(label)}</div>${comparisonModels().map(m => `<div class="cell"><div class="money">${dualMoney(num(m[key]) * num(comparisonValue(m, 'multiplier')), comparisonValue(m, 'fxRate'))}</div></div>`).join('')}`; }    function standardCost(model, totalM, usage) {
+    function priceRow(label, key) { return `<div class="cell label-cell">${comparisonLabel(label)}<em class="cell-unit">${comparisonLabel(t('model.customPricing.unit'))}</em></div>${comparisonModels().map(m => `<div class="cell"><input class="price-input" data-model-key="${key}" data-model-id="${m.id}" type="number" inputmode="decimal" autocomplete="off" min="0" step="0.001" value="${m[key]}"></div>`).join('')}`; }
+    function multipliedPriceRow(label, key) { return `<div class="cell label-cell">${comparisonLabel(label)}</div>${comparisonModels().map(m => `<div class="cell"><div class="money" data-derived-price="${key}" data-model-id="${m.id}">${dualMoney(num(m[key]) * num(comparisonValue(m, 'multiplier')), comparisonValue(m, 'fxRate'))}</div></div>`).join('')}`; }    function standardCost(model, totalM, usage) {
       const ratio = num(usage.ratio);
       const hit = percent(usage.hit) / 100;
       const total = totalM * 1000000;
@@ -1272,6 +1307,27 @@
     function ensurePricingFilterControls() {
       return Boolean($('settingsCustomPricingList') || $('settingsMobileCustomPricing'));
     }
+    function setStatusFilter(value) {
+      settingsStatusFilter = ['', 'enabled', 'disabled'].includes(value) ? value : '';
+      settingsModelPage = 1;
+      renderSettingsModelList();
+    }
+    function setPricingFilter(value) {
+      settingsPricingFilter = ['', 'custom', 'original'].includes(value) ? value : '';
+      settingsModelPage = 1;
+      renderSettingsModelList();
+    }
+    function setProviderFilter(provider, enabled, keepMobileOpen=false) {
+      if (enabled) settingsProviderSelection.add(provider);
+      else settingsProviderSelection.delete(provider);
+      settingsModelPage = 1;
+      renderSettingsModelList(keepMobileOpen);
+    }
+    function clearProviderFilter(keepMobileOpen=false) {
+      settingsProviderSelection.clear();
+      settingsModelPage = 1;
+      renderSettingsModelList(keepMobileOpen);
+    }
     function renderSettingsModelFilters(keepMobileOpen=false) {
       if (!state || !Array.isArray(state.models)) return;
       ensurePricingFilterControls();
@@ -1284,14 +1340,14 @@
       settingsProviderSelection = new Set([...settingsProviderSelection].filter(provider => representatives.has(provider)));
       const options = providers.map(provider => {
         const checked = settingsProviderSelection.has(provider) ? ' checked' : '';
-        return '<label class="provider-filter-option"><input type="checkbox" data-settings-provider="' + escapeHtml(provider) + '"' + checked + '><span class="provider-filter-check" aria-hidden="true">✓</span>' + providerFilterBadge(provider, representatives.get(provider)) + '</label>';
+        return '<label class="provider-filter-option"><input type="checkbox" data-settings-provider="' + escapeHtml(provider) + '"' + checked + '><span class="provider-filter-check" aria-hidden="true">' + uiIcon('check') + '</span>' + providerFilterBadge(provider, representatives.get(provider)) + '</label>';
       }).join('');
       const desktop = $('settingsProviderList');
       if (desktop) desktop.innerHTML = options;
       const clear = $('settingsProviderClear');
       if (clear) {
         clear.classList.toggle('is-active', settingsProviderSelection.size === 0);
-        clear.onclick = () => { settingsProviderSelection.clear(); settingsModelPage = 1; renderSettingsModelList(); };
+        clear.onclick = () => clearProviderFilter();
       }
       const mobilePicker = $('settingsMobileProviderPicker');
       const mobileOptions = $('settingsMobileProviderOptions');
@@ -1302,17 +1358,9 @@
         ? t('models.providersSelected', {count:settingsProviderSelection.size})
         : uiText('models.allProviders', 'All providers');
       document.querySelectorAll('[data-settings-provider]').forEach(input => input.addEventListener('change', () => {
-        const provider = input.dataset.settingsProvider;
-        if (input.checked) settingsProviderSelection.add(provider);
-        else settingsProviderSelection.delete(provider);
-        settingsModelPage = 1;
-        renderSettingsModelList(Boolean(input.closest('#settingsMobileProviderPicker')));
+        setProviderFilter(input.dataset.settingsProvider, input.checked, Boolean(input.closest('#settingsMobileProviderPicker')));
       }));
-      document.querySelector('[data-settings-provider-clear]')?.addEventListener('click', () => {
-        settingsProviderSelection.clear();
-        settingsModelPage = 1;
-        renderSettingsModelList(true);
-      });
+      document.querySelector('[data-settings-provider-clear]')?.addEventListener('click', () => clearProviderFilter(true));
       const statuses = [
         ['', uiText('models.allStatuses', 'All statuses')],
         ['enabled', uiText('models.status.enabled', 'Enabled')],
@@ -1321,16 +1369,12 @@
       const statusList = $('settingsStatusList');
       if (statusList) {
         statusList.innerHTML = statuses.map(([value, label]) => '<label class="status-filter-option"><input type="radio" name="settingsStatusDesktop" value="' + value + '"' + (settingsStatusFilter === value ? ' checked' : '') + '><span>' + escapeHtml(label) + '</span></label>').join('');
-        statusList.querySelectorAll('input').forEach(input => input.addEventListener('change', () => {
-          settingsStatusFilter = input.value;
-          settingsModelPage = 1;
-          renderSettingsModelList();
-        }));
+        statusList.querySelectorAll('input').forEach(input => input.addEventListener('change', () => setStatusFilter(input.value)));
       }
       const mobileStatus = $('settingsMobileStatus');
       if (mobileStatus) {
         mobileStatus.value = settingsStatusFilter;
-        mobileStatus.onchange = () => { settingsStatusFilter = mobileStatus.value; settingsModelPage = 1; renderSettingsModelList(); };
+        mobileStatus.onchange = () => setStatusFilter(mobileStatus.value);
       }
       const pricingOptions = [['', pricingFilterText('')], ['custom', pricingFilterText('custom')], ['original', pricingFilterText('original')]];
       const bindPricingFilter = (root, name, compact=false) => {
@@ -1338,15 +1382,11 @@
         if (compact) {
           root.innerHTML = pricingOptions.map(([value, label]) => '<option value="' + escapeHtml(value) + '"' + (settingsPricingFilter === value ? ' selected' : '') + '>' + escapeHtml(label) + '</option>').join('');
           root.value = settingsPricingFilter;
-          root.onchange = () => { settingsPricingFilter = root.value; settingsModelPage = 1; renderSettingsModelList(); };
+          root.onchange = () => setPricingFilter(root.value);
           return;
         }
         root.innerHTML = pricingOptions.map(([value, label]) => '<label class="custom-pricing-filter-option"><input type="radio" name="' + name + '" value="' + value + '"' + (settingsPricingFilter === value ? ' checked' : '') + '><span>' + escapeHtml(label) + '</span></label>').join('');
-        root.querySelectorAll('input').forEach(input => input.addEventListener('change', () => {
-          settingsPricingFilter = input.value;
-          settingsModelPage = 1;
-          renderSettingsModelList();
-        }));
+        root.querySelectorAll('input').forEach(input => input.addEventListener('change', () => setPricingFilter(input.value)));
       };
       bindPricingFilter($('settingsCustomPricingList'), 'settingsPricingDesktop');
       bindPricingFilter($('settingsMobileCustomPricing'), 'settingsPricingMobile', true);
@@ -1418,7 +1458,7 @@
           ? '<button class="text-btn" type="button" data-settings-edit="' + escapeHtml(model.id) + '">' + escapeHtml(uiText('model.edit.action', 'Edit model')) + '</button>'
           : '';
         const deleteButton = userAddedModel(model)
-          ? '<button class="settings-model-delete" type="button" data-settings-remove="' + escapeHtml(model.id) + '" title="' + escapeHtml(t('action.deleteModel')) + '" aria-label="' + escapeHtml(t('action.deleteModel')) + '">×</button>'
+          ? '<button class="settings-model-delete" type="button" data-settings-remove="' + escapeHtml(model.id) + '" title="' + escapeHtml(t('action.deleteModel')) + '" aria-label="' + escapeHtml(t('action.deleteModel')) + '">' + uiIcon('trash') + '</button>'
           : '';
         return '<article class="settings-model-card' + (modelEnabled(model) ? '' : ' is-disabled') + '" data-provider="' + escapeHtml(settingsProviderLabel(model)) + '" data-category="' + escapeHtml(modelCategory(model)) + '" data-status="' + (modelEnabled(model) ? 'enabled' : 'disabled') + '">' +
           '<header class="settings-model-card-header">' + modelBadge(model, true, true) + '</header>' +
@@ -1434,7 +1474,7 @@
         ensureComparisonSelection();
         ensureSelection('tokenRows');
         ensureSelection('budgetRows');
-        update();
+        updateFull();
       }));
       root.querySelectorAll('[data-settings-edit]').forEach(button => button.addEventListener('click', () => openModelAddDialog(button.dataset.settingsEdit)));
       root.querySelectorAll('[data-settings-config]').forEach(button => button.addEventListener('click', () => openModelConfigDialog(button.dataset.settingsConfig)));
@@ -1605,15 +1645,27 @@
       }
       button.title = t('favorites.deleteSelected');
       button.setAttribute('aria-label', t('favorites.deleteSelected'));
-      button.textContent = '\u00d7';
+      button.innerHTML = uiIcon('trash');
       return button;
     }
-    function showFavoriteDetails(type, id) {
+    // Pinned state makes the details panel reachable on touch devices (T1-4):
+    // hover is a desktop-only enhancement; tapping the ⓘ button toggles it.
+    let pinnedFavorite = null;
+    function syncFavoriteInfoPinned(type) {
+      const root = $(type === 'tokenRows' ? 'tokenFavoritesList' : 'budgetFavoritesList');
+      root?.querySelectorAll('[data-favorite-info]').forEach(button => {
+        button.classList.toggle('is-pinned', Boolean(pinnedFavorite && pinnedFavorite.type === type && pinnedFavorite.id === button.dataset.favoriteId));
+      });
+    }
+    function showFavoriteDetails(type, id, pin=false) {
       const panel = ensureFavoriteDetailsWindow(type);
       const favorite = (state?.[favoriteKey(type)] || []).find(item => item.id === id);
       if (!panel) return;
+      if (pin) pinnedFavorite = {type, id};
       if (!favorite) {
         panel.hidden = true;
+        if (pinnedFavorite && pinnedFavorite.type === type && pinnedFavorite.id === id) pinnedFavorite = null;
+        syncFavoriteInfoPinned(type);
         return;
       }
       const title = panel.querySelector('strong');
@@ -1621,8 +1673,26 @@
       panel.hidden = false;
       if (title) title.textContent = favorite.title;
       if (details) details.textContent = favoriteDetails(type, favorite);
+      syncFavoriteInfoPinned(type);
     }
     function hideFavoriteDetails(type) {
+      if (pinnedFavorite && pinnedFavorite.type === type) return;
+      const panel = ensureFavoriteDetailsWindow(type);
+      if (panel) panel.hidden = true;
+    }
+    function toggleFavoriteDetailsPin(type, id) {
+      if (pinnedFavorite && pinnedFavorite.type === type && pinnedFavorite.id === id) {
+        pinnedFavorite = null;
+        syncFavoriteInfoPinned(type);
+        const panel = ensureFavoriteDetailsWindow(type);
+        if (panel) panel.hidden = true;
+        return;
+      }
+      showFavoriteDetails(type, id, true);
+    }
+    function clearFavoriteDetailsPin(type) {
+      if (pinnedFavorite && pinnedFavorite.type === type) pinnedFavorite = null;
+      syncFavoriteInfoPinned(type);
       const panel = ensureFavoriteDetailsWindow(type);
       if (panel) panel.hidden = true;
     }
@@ -1654,9 +1724,11 @@
         const items = state?.[favoriteKey(type)] || [];
         root.innerHTML = items.length ? items.map(favorite => {
           const details = favoriteDetails(type, favorite);
-          return '<div class="favorite-item" data-favorite-id="' + escapeHtml(favorite.id) + '"><input class="favorite-select" type="checkbox" data-favorite-select data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.select') + ': ' + favorite.title) + '"><button class="favorite-insert" type="button" data-favorite-insert="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(favorite.title + ': ' + details) + '"><span>' + escapeHtml(favorite.title) + '</span><small>' + escapeHtml(t('favorites.insert')) + '</small></button><button class="favorite-rename" type="button" data-favorite-rename="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.rename') + ': ' + favorite.title) + '" title="' + escapeHtml(t('favorites.rename')) + '">✎</button><button class="favorite-delete" type="button" data-favorite-delete="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.delete')) + '" title="' + escapeHtml(t('favorites.delete')) + '">×</button></div>';
+          return '<div class="favorite-item" data-favorite-id="' + escapeHtml(favorite.id) + '"><input class="favorite-select" type="checkbox" data-favorite-select data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.select') + ': ' + favorite.title) + '"><button class="favorite-insert" type="button" data-favorite-insert="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(favorite.title + ': ' + details) + '"><span>' + escapeHtml(favorite.title) + '</span><small>' + escapeHtml(t('favorites.insert')) + '</small></button><button class="favorite-rename" type="button" data-favorite-rename="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.rename') + ': ' + favorite.title) + '" title="' + escapeHtml(t('favorites.rename')) + '">' + uiIcon('pencil') + '</button><button class="favorite-delete" type="button" data-favorite-delete="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.delete')) + '" title="' + escapeHtml(t('favorites.delete')) + '">' + uiIcon('trash') + '</button><button class="favorite-info" type="button" data-favorite-info="' + escapeHtml(type) + '" data-favorite-id="' + escapeHtml(favorite.id) + '" aria-label="' + escapeHtml(t('favorites.detail') + ': ' + favorite.title) + '" title="' + escapeHtml(t('favorites.detail')) + '">' + uiIcon('info') + '</button></div>';
         }).join('') : '<p class="favorites-empty">' + escapeHtml(t('favorites.empty')) + '</p>';
-        hideFavoriteDetails(type);
+        if (pinnedFavorite && pinnedFavorite.type === type && !items.some(fav => fav.id === pinnedFavorite.id)) pinnedFavorite = null;
+        if (!pinnedFavorite || pinnedFavorite.type !== type) hideFavoriteDetails(type);
+        else showFavoriteDetails(pinnedFavorite.type, pinnedFavorite.id, true);
         bindFavoriteItems(type, root);
         updateFavoriteBulkDelete(type);
       });
@@ -1668,6 +1740,7 @@
       const open = drawer.hidden;
       drawer.hidden = !open;
       toggle.setAttribute('aria-expanded', String(open));
+      if (!open) clearFavoriteDetailsPin(type);
     }
     function saveFavorite(type, index) {
       const row = state[type]?.[index];
@@ -1852,7 +1925,7 @@
         orderPanel.hidden = false;
         const orderedModels = modelsBySelection([...modelSelectionDraft]);
         orderPanel.innerHTML = '<div class="model-selection-panel-label">' + escapeHtml(t('filter.modelOrder')) + '<button class="model-order-clear" type="button" data-model-order-clear>' + escapeHtml(t('filter.clearModelOrder')) + '</button></div><p class="model-selection-order-hint">' + escapeHtml(t('filter.modelOrderHint')) + '</p><div id="modelSelectionOrder">' + (orderedModels.length ? orderedModels.map(model =>
-          '<div class="model-selection-order-item" draggable="true" data-model-order-id="' + escapeHtml(model.id) + '"><span class="model-order-drag-handle" aria-hidden="true">&#8942;</span><span>' + modelBadge(model, true) + '</span><button class="model-order-remove" type="button" data-model-order-remove="' + escapeHtml(model.id) + '" title="' + escapeHtml(t('filter.removeModelFromOrder')) + '" aria-label="' + escapeHtml(t('filter.removeModelFromOrder')) + '">×</button></div>'
+          '<div class="model-selection-order-item" draggable="true" data-model-order-id="' + escapeHtml(model.id) + '"><span class="model-order-drag-handle" aria-hidden="true">' + uiIcon('grip') + '</span><span>' + modelBadge(model, true) + '</span><span class="model-order-move"><button class="model-order-move-btn" type="button" data-model-order-move="up" data-model-order-id="' + escapeHtml(model.id) + '" title="' + escapeHtml(t('filter.moveModelUp')) + '" aria-label="' + escapeHtml(t('filter.moveModelUp')) + '">' + uiIcon('arrow-up') + '</button><button class="model-order-move-btn" type="button" data-model-order-move="down" data-model-order-id="' + escapeHtml(model.id) + '" title="' + escapeHtml(t('filter.moveModelDown')) + '" aria-label="' + escapeHtml(t('filter.moveModelDown')) + '">' + uiIcon('arrow-down') + '</button></span><button class="model-order-remove" type="button" data-model-order-remove="' + escapeHtml(model.id) + '" title="' + escapeHtml(t('filter.removeModelFromOrder')) + '" aria-label="' + escapeHtml(t('filter.removeModelFromOrder')) + '">' + uiIcon('x') + '</button></div>'
         ).join('') : '<p class="model-selection-empty">' + t('filter.noModels') + '</p>') + '</div>';
         const orderRoot = $('modelSelectionOrder');
         orderPanel.querySelector('[data-model-order-clear]')?.addEventListener('click', () => {
@@ -1864,6 +1937,25 @@
           modelSelectionDraft.delete(button.dataset.modelOrderRemove);
           renderModelSelectionDialog();
         }));
+        // Touch-friendly alternative to drag & drop (T1-2): explicit up/down buttons.
+        orderRoot?.querySelectorAll('[data-model-order-move]').forEach(button => {
+          const direction = button.dataset.modelOrderMove;
+          const ids = [...modelSelectionDraft];
+          const index = ids.indexOf(button.dataset.modelOrderId);
+          const edge = direction === 'up' ? index <= 0 : index < 0 || index >= ids.length - 1;
+          if (edge) button.disabled = true;
+          button.addEventListener('click', event => {
+            event.stopPropagation();
+            const moveIds = [...modelSelectionDraft];
+            const from = moveIds.indexOf(button.dataset.modelOrderId);
+            if (from < 0) return;
+            const to = direction === 'up' ? from - 1 : from + 1;
+            if (to < 0 || to >= moveIds.length) return;
+            [moveIds[from], moveIds[to]] = [moveIds[to], moveIds[from]];
+            modelSelectionDraft = new Set(moveIds);
+            renderModelSelectionDialog();
+          });
+        });
         orderRoot?.querySelectorAll('[data-model-order-id]').forEach(item => {
           item.addEventListener('dragstart', event => {
             if (!event.dataTransfer) return;
@@ -1995,6 +2087,7 @@
       const root = $('comparisonConfig');
       const config = state.comparisonConfig;
       root.innerHTML = fieldsFor('comparison').map(field => settingInput('comparison', field, config)).join('');
+      ensureComparisonDelegation();
       root.querySelectorAll('[data-shared-key]').forEach(input => input.addEventListener('change', event => {
         const key = event.target.dataset.sharedKey;
         const shared = event.target.checked;
@@ -2004,25 +2097,17 @@
         renderComparison();
         save();
       }));
-      root.querySelectorAll('[data-config-key]').forEach(input => {
-        const apply = event => {
-          const field = fieldsFor('comparison').find(item => item.key === event.target.dataset.configKey);
-          config[field.key] = scenarioFieldStoredValue('comparison', field, event.target.value);
-        };
-        input.addEventListener('input', event => { apply(event); renderComparison(); save(); });
-        input.addEventListener('change', event => { apply(event); renderComparison(); save(); });
-      });
     }
     function comparisonSettingRow(field) {
       const property = comparisonModelKey(field.key);
       const unit = field.key === 'total' ? scenarioTokenUnit('comparison') : field.unit;
-      return `<div class="cell label-cell">${scenarioFieldLabel('comparison', field)}</div>${comparisonModels().map(model => `<div class="cell"><div class="unit-input"><input class="price-input" data-comparison-key="${field.key}" data-model-id="${model.id}" type="number" min="0" step="${field.step}" value="${scenarioFieldDisplayValue('comparison', field, model[property])}"><span>${unit}</span></div></div>`).join('')}`;
+      return `<div class="cell label-cell">${scenarioFieldLabel('comparison', field)}</div>${comparisonModels().map(model => `<div class="cell"><div class="unit-input"><input class="price-input" data-comparison-key="${field.key}" data-model-id="${model.id}" type="number" inputmode="decimal" autocomplete="off" min="0" step="${field.step}" value="${scenarioFieldDisplayValue('comparison', field, model[property])}"><span data-unit-span>${unit}</span></div></div>`).join('')}`;
     }
     function renderComparison() {
       const root = $('comparison'); const models = comparisonModels(); root.style.setProperty('--cols', models.length); renderComparisonFilter();
       const config = state.comparisonConfig;
       root.innerHTML = `
-        <div class="cell label-cell">${comparisonLabel(t('comparison.modelItem'))}</div>${models.map(m=>`<div class="cell model-head" data-model-head="${m.id}">${userAddedModel(m) ? `<button class="close" data-remove="${m.id}" title="${t('action.deleteModel')}">×</button>` : ''}</div>`).join('')}
+        <div class="cell label-cell">${comparisonLabel(t('comparison.modelItem'))}</div>${models.map(m=>`<div class="cell model-head" data-model-head="${m.id}">${userAddedModel(m) ? `<button class="close" data-remove="${m.id}" title="${t('action.deleteModel')}" aria-label="${t('action.deleteModel')}">${uiIcon('trash')}</button>` : ''}</div>`).join('')}
         ${priceRow(t('comparison.cachePrice'), 'cache')}
         ${multipliedPriceRow(t('comparison.cachePriceAdjusted'), 'cache')}
         ${priceRow(t('comparison.inputPrice'), 'input')}
@@ -2030,36 +2115,117 @@
         ${priceRow(t('comparison.outputPrice'), 'output')}
         ${multipliedPriceRow(t('comparison.outputPriceAdjusted'), 'output')}
         ${fieldsFor('comparison').filter(field => !config.shared[field.key]).map(comparisonSettingRow).join('')}
-        <div class="cell label-cell">${comparisonLabel(t('comparison.actualCost'))}</div>${models.map(m=>`<div class="cell"><div class="money big">${dualMoney(cost(m,comparisonValue(m,'total'),{ratio:comparisonValue(m,'ratio'), hit:comparisonValue(m,'hit')},comparisonValue(m,'multiplier')), comparisonValue(m,'fxRate'))}</div></div>`).join('')}
-        <div class="cell label-cell">${comparisonLabel(t('comparison.standardCost'))}</div>${models.map(m=>`<div class="cell"><div class="money">${dualMoney(standardCost(m,comparisonValue(m,'total'),{ratio:comparisonValue(m,'ratio'), hit:comparisonValue(m,'hit')}), comparisonValue(m,'fxRate'))}</div></div>`).join('')}`;
+        <div class="cell label-cell">${comparisonLabel(t('comparison.actualCost'))}</div>${models.map(m=>`<div class="cell"><div class="money big" data-derived="actual" data-model-id="${m.id}">${dualMoney(cost(m,comparisonValue(m,'total'),{ratio:comparisonValue(m,'ratio'), hit:comparisonValue(m,'hit')},comparisonValue(m,'multiplier')), comparisonValue(m,'fxRate'))}</div></div>`).join('')}
+        <div class="cell label-cell">${comparisonLabel(t('comparison.standardCost'))}</div>${models.map(m=>`<div class="cell"><div class="money" data-derived="standard" data-model-id="${m.id}">${dualMoney(standardCost(m,comparisonValue(m,'total'),{ratio:comparisonValue(m,'ratio'), hit:comparisonValue(m,'hit')}), comparisonValue(m,'fxRate'))}</div></div>`).join('')}`;
       root.querySelectorAll('.model-head').forEach(el => {
         const model = state.models.find(item => item.id === el.dataset.modelHead);
         if (model) el.insertAdjacentHTML('afterbegin', modelBadge(model, true));
       });
-      root.querySelectorAll('[data-model-key]').forEach(el => { const apply = e => { const model = state.models.find(item => item.id === e.target.dataset.modelId); if (model) model[e.target.dataset.modelKey] = num(e.target.value); }; el.addEventListener('input', e => { apply(e); save(); }); el.addEventListener('change', e => { apply(e); renderComparison(); save(); }); });
-      root.querySelectorAll('[data-comparison-key]').forEach(el => {
-        const apply = event => {
-          const model = state.models.find(item => item.id === event.target.dataset.modelId);
-          const field = fieldsFor('comparison').find(item => item.key === event.target.dataset.comparisonKey);
-          if (model) model[comparisonModelKey(field.key)] = scenarioFieldStoredValue('comparison', field, event.target.value);
-        };
-        el.addEventListener('input', event => { apply(event); save(); });
-        el.addEventListener('change', event => { apply(event); renderComparison(); save(); });
+      ensureComparisonDelegation();
+    }
+    // Update only the computed cells of the comparison table. Inputs are never
+    // rebuilt here, so typing/tabbing through fields never loses focus.
+    function updateComparisonDerived() {
+      const root = $('comparison');
+      if (!root || !state) return;
+      root.querySelectorAll('[data-derived], [data-derived-price]').forEach(el => {
+        const model = state.models.find(item => item.id === el.dataset.modelId);
+        if (!model) return;
+        const kind = el.dataset.derived;
+        if (kind === 'actual') {
+          el.textContent = dualMoney(cost(model, comparisonValue(model, 'total'), {ratio:comparisonValue(model, 'ratio'), hit:comparisonValue(model, 'hit')}, comparisonValue(model, 'multiplier')), comparisonValue(model, 'fxRate'));
+        } else if (kind === 'standard') {
+          el.textContent = dualMoney(standardCost(model, comparisonValue(model, 'total'), {ratio:comparisonValue(model, 'ratio'), hit:comparisonValue(model, 'hit')}), comparisonValue(model, 'fxRate'));
+        } else if (el.dataset.derivedPrice) {
+          el.textContent = dualMoney(num(model[el.dataset.derivedPrice]) * num(comparisonValue(model, 'multiplier')), comparisonValue(model, 'fxRate'));
+        }
       });
-      root.querySelectorAll('[data-remove]').forEach(el => el.addEventListener('click', e => {
-        openModelDeleteDialog(e.target.dataset.remove);
-      }));
+      syncUnitDisplays('comparison');
+    }
+    let comparisonDelegated = false;
+    function ensureComparisonDelegation() {
+      if (comparisonDelegated) return;
+      comparisonDelegated = true;
+      const root = $('comparison');
+      if (!root) return;
+      const applyValue = target => {
+        if (target.matches('[data-model-key]')) {
+          const model = state.models.find(item => item.id === target.dataset.modelId);
+          if (model) model[target.dataset.modelKey] = num(target.value);
+          return Boolean(model);
+        }
+        if (target.matches('[data-comparison-key]')) {
+          const model = state.models.find(item => item.id === target.dataset.modelId);
+          const field = fieldsFor('comparison').find(item => item.key === target.dataset.comparisonKey);
+          if (model && field) model[comparisonModelKey(field.key)] = scenarioFieldStoredValue('comparison', field, target.value);
+          return Boolean(model && field);
+        }
+        return false;
+      };
+      root.addEventListener('input', event => {
+        if (applyValue(event.target)) { updateComparisonDerived(); save(); }
+      });
+      root.addEventListener('change', event => {
+        if (applyValue(event.target)) { updateComparisonDerived(); save(); }
+      });
+      root.addEventListener('click', event => {
+        const remove = event.target.closest('[data-remove]');
+        if (remove) openModelDeleteDialog(remove.dataset.remove);
+      });
+      const configRoot = $('comparisonConfig');
+      const applyConfigValue = target => {
+        if (!target.matches('[data-config-key]')) return false;
+        const field = fieldsFor('comparison').find(item => item.key === target.dataset.configKey);
+        if (!field) return false;
+        state.comparisonConfig[field.key] = scenarioFieldStoredValue('comparison', field, target.value);
+        return true;
+      };
+      configRoot?.addEventListener('input', event => {
+        if (applyConfigValue(event.target)) { updateComparisonDerived(); save(); }
+      });
+      configRoot?.addEventListener('change', event => {
+        if (applyConfigValue(event.target)) { updateComparisonDerived(); save(); }
+      });
+    }
+    // Keep every "total" input's displayed value + unit suffix consistent when
+    // the automatic token unit flips (e.g. typing 999 -> 1000 switches M -> B).
+    // The focused element is left untouched so typing is never interrupted.
+    function syncUnitDisplays(type) {
+      if (type !== 'comparison' && type !== 'tokenRows') return;
+      const unit = scenarioTokenUnit(type);
+      const field = fieldsFor(type).find(item => item.key === 'total');
+      if (!field) return;
+      const selector = type === 'comparison'
+        ? '[data-config-type="comparison"][data-config-key="total"], [data-comparison-key="total"]'
+        : '[data-config-type="tokenRows"][data-config-key="total"], [data-row-type="tokenRows"][data-row-key="total"]';
+      document.querySelectorAll(selector).forEach(input => {
+        let stored = null;
+        if (input.dataset.comparisonKey !== undefined) {
+          const model = state.models.find(item => item.id === input.dataset.modelId);
+          if (model) stored = model[comparisonModelKey(field.key)];
+        } else if (input.dataset.configKey !== undefined) {
+          stored = configFor(type)[field.key];
+        } else if (input.dataset.rowKey !== undefined) {
+          const row = state[type][Number(input.dataset.rowIndex)];
+          if (row) stored = row[field.key];
+        }
+        if (stored == null) return;
+        const span = input.parentElement && input.parentElement.querySelector('[data-unit-span]');
+        if (span) span.textContent = unit;
+        if (input !== document.activeElement) input.value = scenarioFieldDisplayValue(type, field, stored);
+      });
     }
     function settingInput(type, field, config) {
       const label = scenarioFieldLabel(type, field);
       const value = scenarioFieldDisplayValue(type, field, config[field.key]);
       const unit = (type === 'comparison' || type === 'tokenRows') && field.key === 'total' ? scenarioTokenUnit(type) : field.unit;
       return '<div class="scenario-setting"><div class="scenario-setting-title"><span>' + label + '</span><label class="check-label"><input type="checkbox" data-shared-type="' + type + '" data-shared-key="' + field.key + '"' + (config.shared[field.key] ? ' checked' : '') + '>' + t('action.shared') + '</label></div>' +
-        (config.shared[field.key] ? '<div class="unit-input"><input data-config-type="' + type + '" data-config-key="' + field.key + '" type="number" min="0" step="' + field.step + '" value="' + value + '"><span>' + unit + '</span></div>' : '<p class="per-row-note">' + t('action.perRow') + '</p>') + '</div>';
+        (config.shared[field.key] ? '<div class="unit-input"><input data-config-type="' + type + '" data-config-key="' + field.key + '" type="number" inputmode="decimal" autocomplete="off" min="0" step="' + field.step + '" value="' + value + '"><span data-unit-span>' + unit + '</span></div>' : '<p class="per-row-note">' + t('action.perRow') + '</p>') + '</div>';
     }    function renderScenarioConfig(type) {
       const root = $(type === 'tokenRows' ? 'tokenConfig' : 'budgetConfig');
       const config = configFor(type);
       root.innerHTML = fieldsFor(type).map(field => settingInput(type, field, config)).join('');
+      ensureScenarioDelegation(type);
       root.querySelectorAll('[data-shared-key]').forEach(input => input.addEventListener('change', event => {
         const key = event.target.dataset.sharedKey;
         const shared = event.target.checked;
@@ -2069,18 +2235,6 @@
         if (type === 'tokenRows') renderTokenRows(); else renderBudgetRows();
         save();
       }));
-      root.querySelectorAll('[data-config-key]').forEach(input => {
-        const apply = event => {
-          const field = fieldsFor(type).find(item => item.key === event.target.dataset.configKey);
-          config[field.key] = scenarioFieldStoredValue(type, field, event.target.value);
-        };
-        input.addEventListener('input', event => { apply(event); save(); });
-        input.addEventListener('change', event => {
-          apply(event);
-          if (type === 'tokenRows') renderTokenRows(); else renderBudgetRows();
-          save();
-        });
-      });
     }
     function scenarioValue(type, row, key) {
       const config = configFor(type);
@@ -2090,46 +2244,104 @@
       const label = scenarioFieldLabel(type, field);
       const displayValue = scenarioFieldDisplayValue(type, field, value);
       const unit = (type === 'comparison' || type === 'tokenRows') && field.key === 'total' ? scenarioTokenUnit(type) : field.unit;
-      return '<div class="scenario-cell"><label>' + label + '</label><div class="unit-input"><input class="scenario-input" data-row-type="' + type + '" data-row-index="' + index + '" data-row-key="' + field.key + '" type="number" min="0" step="' + field.step + '" value="' + displayValue + '"><span>' + unit + '</span></div></div>';
-    }    function bindScenarioRows(root) {
-      root.querySelectorAll('[data-row-key]').forEach(el => {
-        const apply = event => {
-          const type = event.target.dataset.rowType;
-          const index = Number(event.target.dataset.rowIndex);
-          const field = fieldsFor(type).find(item => item.key === event.target.dataset.rowKey);
-          state[type][index][field.key] = scenarioFieldStoredValue(type, field, event.target.value);
-          return type;
-        };
-        el.addEventListener('input', event => { apply(event); save(); });
-        el.addEventListener('change', event => {
-          const type = apply(event);
+      return '<div class="scenario-cell"><label>' + label + '</label><div class="unit-input"><input class="scenario-input" data-row-type="' + type + '" data-row-index="' + index + '" data-row-key="' + field.key + '" type="number" inputmode="decimal" autocomplete="off" min="0" step="' + field.step + '" value="' + displayValue + '"><span data-unit-span>' + unit + '</span></div></div>';
+    }    const scenarioDelegated = {};
+    function ensureScenarioDelegation(type) {
+      if (scenarioDelegated[type]) return;
+      scenarioDelegated[type] = true;
+      const rowsRoot = $(type === 'tokenRows' ? 'tokenRows' : 'budgetRows');
+      rowsRoot?.addEventListener('input', event => {
+        if (applyRowInput(event.target)) { updateScenarioResults(type); save(); }
+      });
+      rowsRoot?.addEventListener('change', event => {
+        if (applyRowInput(event.target)) { updateScenarioResults(type); save(); }
+      });
+      rowsRoot?.addEventListener('click', event => {
+        const remove = event.target.closest('[data-remove-row]');
+        if (remove) {
+          if (state[type].length) {
+            state[type].splice(Number(remove.dataset.removeRow), 1);
+            if (type === 'tokenRows') renderTokenRows(); else renderBudgetRows();
+            save();
+          }
+          return;
+        }
+        const create = event.target.closest('[data-create-row]');
+        if (create) {
+          const previous = state[type].length ? state[type][state[type].length - 1] : null;
+          const row = newRow(type, configFor(type));
+          row.modelIds = modelsShared(type) ? [...(state[selectedKey(type)] || [])] : [...(previous && Array.isArray(previous.modelIds) ? previous.modelIds : (state[selectedKey(type)] || []))];
+          state[type].push(row);
           if (type === 'tokenRows') renderTokenRows(); else renderBudgetRows();
           save();
+          return;
+        }
+        const modelSelect = event.target.closest('[data-row-model-selection]');
+        if (modelSelect) {
+          openModelSelection(modelSelect.dataset.rowModelSelection, Number(modelSelect.dataset.rowIndex));
+          return;
+        }
+        const favorite = event.target.closest('[data-save-favorite]');
+        if (favorite) {
+          saveFavorite(favorite.dataset.saveFavorite, Number(favorite.dataset.favoriteRow));
+        }
+      });
+      const configRoot = $(type === 'tokenRows' ? 'tokenConfig' : 'budgetConfig');
+      const applyConfigInput = target => {
+        if (!target.matches('[data-config-key]')) return false;
+        const config = configFor(type);
+        const field = fieldsFor(type).find(item => item.key === target.dataset.configKey);
+        if (!field) return false;
+        config[field.key] = scenarioFieldStoredValue(type, field, target.value);
+        return true;
+      };
+      configRoot?.addEventListener('input', event => {
+        if (applyConfigInput(event.target)) { updateScenarioResults(type); save(); }
+      });
+      configRoot?.addEventListener('change', event => {
+        if (applyConfigInput(event.target)) { updateScenarioResults(type); save(); }
+      });
+    }
+    function applyRowInput(target) {
+      if (!target.matches('[data-row-key]')) return false;
+      const type = target.dataset.rowType;
+      const index = Number(target.dataset.rowIndex);
+      const row = state[type] && state[type][index];
+      const field = fieldsFor(type).find(item => item.key === target.dataset.rowKey);
+      if (!row || !field) return false;
+      row[field.key] = scenarioFieldStoredValue(type, field, target.value);
+      return true;
+    }
+    // Rewrite only the computed result cells; input cells keep their DOM (and focus).
+    function updateScenarioResults(type) {
+      const root = $(type === 'tokenRows' ? 'tokenRows' : 'budgetRows');
+      if (!root || !state) return;
+      const resultUnit = scenarioTokenUnit(type);
+      (state[type] || []).forEach((row, index) => {
+        const usage = {ratio:scenarioValue(type, row, 'ratio'), hit:scenarioValue(type, row, 'hit')};
+        const multiplier = scenarioValue(type, row, 'multiplier');
+        const fxRate = scenarioValue(type, row, 'fxRate');
+        root.querySelectorAll('[data-result-row="' + index + '"]').forEach(cell => {
+          const model = state.models.find(item => item.id === cell.dataset.resultModel);
+          if (!model) return;
+          const valueEl = cell.querySelector('[data-result-value]');
+          const noteEl = cell.querySelector('[data-result-note]');
+          if (type === 'tokenRows') {
+            const total = scenarioValue(type, row, 'total');
+            if (valueEl) valueEl.textContent = money(cost(model, total, usage, multiplier), fxRate);
+            if (noteEl) noteEl.textContent = t('scenario.perHundredMillion', {cost:money(cost(model, 100, usage, multiplier), fxRate)});
+          } else {
+            const budget = scenarioValue(type, row, 'budget');
+            const budgetUsd = budget / (state.currency === 'CNY' ? num(fxRate) : 1);
+            const perM = cost(model, 1, usage, multiplier);
+            if (valueEl) valueEl.textContent = perM ? tokens(budgetUsd / perM, resultUnit) : '--';
+          }
         });
       });
-      root.querySelectorAll('[data-remove-row]').forEach(el => el.addEventListener('click', event => {
-        const type = event.target.dataset.removeType;
-        if (state[type].length) {
-          state[type].splice(Number(event.target.dataset.removeRow), 1);
-          if (type === 'tokenRows') renderTokenRows(); else renderBudgetRows();
-          save();
-        }
-      }));
-      root.querySelectorAll('[data-create-row]').forEach(el => el.addEventListener('click', event => {
-        const type = event.currentTarget.dataset.createRow;
-        const previous = state[type].length ? state[type][state[type].length - 1] : null;
-        const row = newRow(type, configFor(type));
-        row.modelIds = modelsShared(type) ? [...(state[selectedKey(type)] || [])] : [...(previous && Array.isArray(previous.modelIds) ? previous.modelIds : (state[selectedKey(type)] || []))];
-        state[type].push(row);
-        if (type === 'tokenRows') renderTokenRows(); else renderBudgetRows();
-        save();
-      }));
-      root.querySelectorAll('[data-row-model-selection]').forEach(el => el.addEventListener('click', event => {
-        openModelSelection(event.currentTarget.dataset.rowModelSelection, Number(event.currentTarget.dataset.rowIndex));
-      }));
-      root.querySelectorAll('[data-save-favorite]').forEach(el => el.addEventListener('click', event => {
-        saveFavorite(event.currentTarget.dataset.saveFavorite, Number(event.currentTarget.dataset.favoriteRow));
-      }));
+      if (type === 'tokenRows') syncUnitDisplays('tokenRows');
+    }
+    function prepareTable(root, fields, models) {
+      root.style.gridTemplateColumns = ['72px', ...fields.map(() => 'minmax(132px, 1fr)'), ...models.map(() => 'minmax(190px, 1fr)')].join(' ');
     }
     function prepareTable(root, fields, models) {
       root.style.gridTemplateColumns = ['72px', ...fields.map(() => 'minmax(132px, 1fr)'), ...models.map(() => 'minmax(190px, 1fr)')].join(' ');
@@ -2138,7 +2350,7 @@
       const root = $('tokenRows'), config = state.tokenConfig;
       if (!state.tokenRows.length) {
         root.innerHTML = '<button class="scenario-empty-state" type="button" data-create-row="tokenRows">' + t('scenario.emptyAdd') + '</button>';
-        bindScenarioRows(root);
+        ensureScenarioDelegation('tokenRows');
         return;
       }
       const fields = fieldsFor('tokenRows').filter(field => !config.shared[field.key]);
@@ -2148,19 +2360,19 @@
         const total = scenarioValue('tokenRows', row, 'total');
         const multiplier = scenarioValue('tokenRows', row, 'multiplier');
         const fxRate = scenarioValue('tokenRows', row, 'fxRate');
-        const controls = '<div class="scenario-cell scenario-number"><span class="scenario-row-number">' + (index + 1) + '</span><div class="scenario-row-actions"><button class="row-favorite" type="button" data-save-favorite="tokenRows" data-favorite-row="' + index + '" title="' + escapeHtml(t('action.saveFavorite')) + '" aria-label="' + escapeHtml(t('action.saveFavorite')) + '">☆</button><button class="scenario-remove" data-remove-type="tokenRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '" aria-label="' + t('action.deleteItem') + '">×</button></div></div>' + fields.map(field => scenarioNumberInput('tokenRows', index, field, row[field.key])).join('');
-         const results = models.length ? models.map(model => '<div class="scenario-cell scenario-result">' + modelBadge(model, true) + '<span>' + money(cost(model, total, usage, multiplier), fxRate) + '</span><em>' + t('scenario.perHundredMillion', {cost:money(cost(model, 100, usage, multiplier), fxRate)}) + '</em></div>').join('') : '<div class="scenario-row-empty">' + escapeHtml(t('scenario.noModels')) + '</div>';
+        const controls = '<div class="scenario-cell scenario-number"><span class="scenario-row-number">' + (index + 1) + '</span><div class="scenario-row-actions"><button class="row-favorite" type="button" data-save-favorite="tokenRows" data-favorite-row="' + index + '" title="' + escapeHtml(t('action.saveFavorite')) + '" aria-label="' + escapeHtml(t('action.saveFavorite')) + '">' + uiIcon('star') + '</button><button class="scenario-remove" data-remove-type="tokenRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '" aria-label="' + t('action.deleteItem') + '">' + uiIcon('trash') + '</button></div></div>' + fields.map(field => scenarioNumberInput('tokenRows', index, field, row[field.key])).join('');
+         const results = models.length ? models.map(model => '<div class="scenario-cell scenario-result" data-result-row="' + index + '" data-result-model="' + escapeHtml(model.id) + '">' + modelBadge(model, true) + '<span data-result-value>' + money(cost(model, total, usage, multiplier), fxRate) + '</span><em data-result-note>' + t('scenario.perHundredMillion', {cost:money(cost(model, 100, usage, multiplier), fxRate)}) + '</em></div>').join('') : '<div class="scenario-row-empty">' + escapeHtml(t('scenario.noModels')) + '</div>';
          const modelButton = modelsShared('tokenRows') ? '' : '<button class="row-model-select" type="button" data-row-model-selection="tokenRows" data-row-index="' + index + '">' + escapeHtml(t('filter.modelSelect')) + ' <span>(' + models.length + ')</span></button>';
          return '<article class="scenario-entry"><div class="scenario-row-inputs">' + controls + modelButton + '</div><div class="scenario-result-scroll"><div class="scenario-result-list">' + results + '</div></div></article>';
       }).join('');
       root.innerHTML = '<div class="scenario-entry-list">' + entries + '</div>';
-      bindScenarioRows(root);
+      ensureScenarioDelegation('tokenRows');
     }
     function renderBudgetRows() {
       const root = $('budgetRows'), config = state.budgetConfig;
       if (!state.budgetRows.length) {
         root.innerHTML = '<button class="scenario-empty-state" type="button" data-create-row="budgetRows">' + t('scenario.emptyAdd') + '</button>';
-        bindScenarioRows(root);
+        ensureScenarioDelegation('budgetRows');
         return;
       }
       const fields = fieldsFor('budgetRows').filter(field => !config.shared[field.key]);
@@ -2171,20 +2383,22 @@
         const budget = scenarioValue('budgetRows', row, 'budget');
         const multiplier = scenarioValue('budgetRows', row, 'multiplier');
         const fxRate = scenarioValue('budgetRows', row, 'fxRate');
-        const controls = '<div class="scenario-cell scenario-number"><span class="scenario-row-number">' + (index + 1) + '</span><div class="scenario-row-actions"><button class="row-favorite" type="button" data-save-favorite="budgetRows" data-favorite-row="' + index + '" title="' + escapeHtml(t('action.saveFavorite')) + '" aria-label="' + escapeHtml(t('action.saveFavorite')) + '">☆</button><button class="scenario-remove" data-remove-type="budgetRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '" aria-label="' + t('action.deleteItem') + '">×</button></div></div>' + fields.map(field => scenarioNumberInput('budgetRows', index, field, row[field.key])).join('');
+        const controls = '<div class="scenario-cell scenario-number"><span class="scenario-row-number">' + (index + 1) + '</span><div class="scenario-row-actions"><button class="row-favorite" type="button" data-save-favorite="budgetRows" data-favorite-row="' + index + '" title="' + escapeHtml(t('action.saveFavorite')) + '" aria-label="' + escapeHtml(t('action.saveFavorite')) + '">' + uiIcon('star') + '</button><button class="scenario-remove" data-remove-type="budgetRows" data-remove-row="' + index + '" title="' + t('action.deleteItem') + '" aria-label="' + t('action.deleteItem') + '">' + uiIcon('trash') + '</button></div></div>' + fields.map(field => scenarioNumberInput('budgetRows', index, field, row[field.key])).join('');
         const budgetUsd = budget / (state.currency === 'CNY' ? num(fxRate) : 1);
          const results = models.length ? models.map(model => {
            const perM = cost(model, 1, usage, multiplier);
-           return '<div class="scenario-cell scenario-result">' + modelBadge(model, true) + '<span>' + (perM ? tokens(budgetUsd / perM, resultUnit) : '--') + '</span><em>' + t('scenario.totalByBudget') + '</em></div>';
+           return '<div class="scenario-cell scenario-result" data-result-row="' + index + '" data-result-model="' + escapeHtml(model.id) + '">' + modelBadge(model, true) + '<span data-result-value>' + (perM ? tokens(budgetUsd / perM, resultUnit) : '--') + '</span><em data-result-note>' + t('scenario.totalByBudget') + '</em></div>';
          }).join('') : '<div class="scenario-row-empty">' + escapeHtml(t('scenario.noModels')) + '</div>';
          const modelButton = modelsShared('budgetRows') ? '' : '<button class="row-model-select" type="button" data-row-model-selection="budgetRows" data-row-index="' + index + '">' + escapeHtml(t('filter.modelSelect')) + ' <span>(' + models.length + ')</span></button>';
          return '<article class="scenario-entry"><div class="scenario-row-inputs">' + controls + modelButton + '</div><div class="scenario-result-scroll"><div class="scenario-result-list">' + results + '</div></div></article>';
       }).join('');
       root.innerHTML = '<div class="scenario-entry-list">' + entries + '</div>';
-      bindScenarioRows(root);
+      ensureScenarioDelegation('budgetRows');
     }
     function renderScenario() { renderModelFilter('tokenRows'); renderModelFilter('budgetRows'); renderScenarioConfig('tokenRows'); renderScenarioConfig('budgetRows'); renderTokenRows(); renderBudgetRows(); }
-    function update(renderModelComparison=true) {
+    // Pure textContent updates for the structure view. Touches no inputs, so it
+    // is safe to call on every keystroke.
+    function updateStructureOutputs() {
       const inputTotal = num(state.cache) + num(state.input);
       $('ratioOut').textContent = num(state.output) ? (inputTotal / num(state.output)).toFixed(2) + ' : 1' : '--';
       $('hitOut').textContent = inputTotal ? (num(state.cache) / inputTotal * 100).toFixed(1) + '%' : '--';
@@ -2196,9 +2410,19 @@
       const spentUsd = toUsd(state.multiplierCalc.spent, state.multiplierCalc.spentCurrency);
       const earnedUsd = toUsd(state.multiplierCalc.earned, state.multiplierCalc.earnedCurrency);
       $('multiplierOut').textContent = earnedUsd ? (spentUsd / earnedUsd).toLocaleString('zh-CN', {maximumFractionDigits:4}) : '--';
-      if (renderModelComparison) { renderComparisonConfig(); renderComparison(); }
-      renderScenario(); renderFavorites(); renderSettingsModelList(); save();
     }
+    // Full refresh: rebuild every state-driven view. Only used for structural
+    // changes (model add/delete, language/currency switch, sharing toggles).
+    function updateFull() {
+      updateStructureOutputs();
+      renderComparisonConfig();
+      renderComparison();
+      renderScenario();
+      renderFavorites();
+      renderSettingsModelList();
+      save();
+    }
+    function update() { updateStructureOutputs(); save(); }
     bindStructureInput('cache','cache'); bindStructureInput('input','input'); bindStructureInput('output','output'); bind('knownRatio','knownRatio'); bind('knownHit','knownHit',percent);
     $('multSpent').addEventListener('input', event => { state.multiplierCalc.spent = num(event.target.value); update(); });
     $('multEarned').addEventListener('input', event => { state.multiplierCalc.earned = num(event.target.value); update(); });
@@ -2212,7 +2436,7 @@
       const model = id && state.models.find(item => item.id === id);
       if (userAddedModel(model) && state.models.length > 1) {
         state.models = state.models.filter(model => model.id !== id);
-        ensureComparisonSelection(); ensureSelection('tokenRows'); ensureSelection('budgetRows'); update();
+        ensureComparisonSelection(); ensureSelection('tokenRows'); ensureSelection('budgetRows'); updateFull();
       }
     };
     $('modelDeleteDialog').addEventListener('close', () => { pendingModelId = null; });
@@ -2227,7 +2451,7 @@
       model.output = priceNumber($('modelConfigOutput').value);
       model.customPricing = true;
       closeModelConfigDialog();
-      update();
+      updateFull();
     };
     $('resetModelConfig').onclick = async () => {
       const model = state.models.find(item => item.id === pendingModelConfigId);
@@ -2253,7 +2477,7 @@
         model.output = catalogPricing.output;
         model.customPricing = false;
         closeModelConfigDialog();
-        update();
+        updateFull();
       } catch (error) {
         console.error('Failed to restore catalog pricing.', error);
         alert(t('model.customPricing.resetFailed'));
@@ -2345,8 +2569,8 @@
     $('budgetModelsShared').onchange = event => requestModelSharing('budgetRows', event.target.checked);
     $('tokenModelEdit').onclick = () => openModelSelection('tokenRows');
     $('budgetModelEdit').onclick = () => openModelSelection('budgetRows');
-    $('currency').onchange=e=>{state.currency=e.target.value; update();};
-    $('language').onchange = event => { state.language = window.i18n.setLocale(event.target.value); window.i18n.translateDocument(); renderMobileViewTitle(state.activeView); renderStructureUnit(); renderSettingsModelFilters(); update(); };
+    $('currency').onchange=e=>{state.currency=e.target.value; updateFull();};
+    $('language').onchange = event => { state.language = window.i18n.setLocale(event.target.value); window.i18n.translateDocument(); renderMobileViewTitle(state.activeView); renderStructureUnit(); renderSettingsModelFilters(); updateFull(); };
     $('showHostedModels').onchange = event => {
       state.showHostedModels = event.target.checked;
       settingsProviderSelection.clear();
@@ -2412,7 +2636,7 @@
         mergePricingModels(Array.isArray(result.models) ? result.models : []);
         state.pricingCatalogInitialized = true;
         state.pricingCatalogFetchedAt = result.fetchedAt || new Date().toISOString();
-        update();
+        updateFull();
         if (status) {
           status.className = 'pricing-status ' + (result.fromCache ? 'warning' : 'success');
           status.textContent = result.fromCache
@@ -2502,14 +2726,14 @@
         existing.providerId = providerId;
         existing.icon = '';
         closeModelAddDialog();
-        update();
+        updateFull();
         return;
       }
       const id = 'custom-' + Date.now();
       state.models.push({id, name, category, categoryId:category, provider, providerId, source:'manual', sourceModelId:'', targetId:'', icon:'', cache:0, input:0, output:0, customPricing:true, enabled:true, multiplier:.04, fxRate:7.2, comparisonRatio:config.ratio, comparisonHit:config.hit, comparisonTotal:config.total});
       state.comparisonSelectedModelIds.push(id);
       closeModelAddDialog();
-      update();
+      updateFull();
     }
     if ($('settingsSyncPrices')) $('settingsSyncPrices').onclick = syncPricingModels;
     if ($('addModel')) $('addModel').onclick = () => openModelAddDialog();
@@ -2584,6 +2808,8 @@
         if (insert) return insertFavorite(insert.dataset.favoriteInsert, insert.dataset.favoriteId);
         const rename = event.target.closest('[data-favorite-rename]');
         if (rename) return requestFavoriteRename(rename.dataset.favoriteRename, rename.dataset.favoriteId);
+        const info = event.target.closest('[data-favorite-info]');
+        if (info) return toggleFavoriteDetailsPin(info.dataset.favoriteInfo, info.dataset.favoriteId);
         const remove = event.target.closest('[data-favorite-delete]');
         if (remove) deleteFavorite(remove.dataset.favoriteDelete, remove.dataset.favoriteId);
       });
@@ -2659,7 +2885,7 @@
         applySidebarCollapsed(state.sidebarCollapsed || window.innerWidth <= 740, false);
          setSettingsSection(state.settingsSection, false);
         setActiveView(state.activeView, false);
-        update();
+        updateFull();
         const onboardingVisible = onboardingRequired && showOnboarding(rawState);
         if (onboardingVisible) {
           // `onboarding-open` continues to hide the workspace below the full-screen flow.

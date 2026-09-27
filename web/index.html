@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Token Cost Calc</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -15,11 +15,11 @@
             <p class="subtitle" data-i18n="app.subtitle">A clear sketch for token costs.</p>
           </div>
           <nav class="sidebar-nav" aria-label="Views" data-i18n-aria-label="sidebar.navigation">
-            <button class="sidebar-nav-item is-active" type="button" data-view-target="home" aria-current="page"><span aria-hidden="true">⌂</span><span data-i18n="sidebar.home">Home</span></button>
-            <button class="sidebar-nav-item" type="button" data-view-target="structure"><span aria-hidden="true">①</span><span data-i18n="sidebar.structure">Usage breakdown</span></button>
-            <button class="sidebar-nav-item" type="button" data-view-target="comparison"><span aria-hidden="true">②</span><span data-i18n="sidebar.comparison">Model comparison</span></button>
-            <button class="sidebar-nav-item" type="button" data-view-target="tokenCost"><span aria-hidden="true">③</span><span data-i18n="sidebar.tokenCost">Tokens to cost</span></button>
-            <button class="sidebar-nav-item" type="button" data-view-target="budget"><span aria-hidden="true">④</span><span data-i18n="sidebar.budget">Budget to tokens</span></button>
+            <button class="sidebar-nav-item is-active" type="button" data-view-target="home" aria-current="page"><span data-icon="home" aria-hidden="true"></span><span data-i18n="sidebar.home">Home</span></button>
+            <button class="sidebar-nav-item" type="button" data-view-target="structure"><span data-icon="sliders" aria-hidden="true"></span><span data-i18n="sidebar.structure">Usage breakdown</span></button>
+            <button class="sidebar-nav-item" type="button" data-view-target="comparison"><span data-icon="compare" aria-hidden="true"></span><span data-i18n="sidebar.comparison">Model comparison</span></button>
+            <button class="sidebar-nav-item" type="button" data-view-target="tokenCost"><span data-icon="exchange" aria-hidden="true"></span><span data-i18n="sidebar.tokenCost">Tokens to cost</span></button>
+            <button class="sidebar-nav-item" type="button" data-view-target="budget"><span data-icon="wallet" aria-hidden="true"></span><span data-i18n="sidebar.budget">Budget to tokens</span></button>
           </nav>
           <nav class="settings-global-nav" id="settingsSubnav" aria-label="Settings sections" data-i18n-aria-label="settings.sidebar">
             <button class="settings-subnav-item is-active" type="button" data-settings-target="general" aria-controls="settingsGeneralSection" aria-current="page"><span aria-hidden="true">01</span><span data-i18n="settings.general">General</span></button>
@@ -28,12 +28,12 @@
             <button class="settings-subnav-item" type="button" data-settings-target="reset" aria-controls="settingsResetSection"><span aria-hidden="true">04</span><span data-i18n="settings.resetTitle">Reset application</span></button>
           </nav>
           <div class="sidebar-footer">
-            <button class="sidebar-settings" id="openSettings" type="button" data-view-target="settings"><span class="sidebar-settings-icon" aria-hidden="true">⚙</span><span data-i18n="sidebar.settings">Settings</span></button>
+            <button class="sidebar-settings" id="openSettings" type="button" data-view-target="settings"><span class="sidebar-settings-icon" data-icon="gear" aria-hidden="true"></span><span data-i18n="sidebar.settings">Settings</span></button>
           </div>
         </div>
     </aside>
     <button class="sidebar-toggle" id="sidebarToggle" data-sidebar-toggle="true" type="button" aria-expanded="true" aria-label="Toggle sidebar" data-i18n-aria-label="sidebar.toggle" data-i18n-title="sidebar.toggle" title="Toggle sidebar">
-      <span class="sidebar-toggle-icon" aria-hidden="true">☰</span>
+      <span class="sidebar-toggle-icon" data-icon="menu" aria-hidden="true"></span>
     </button>
     <button class="sidebar-backdrop" id="sidebarBackdrop" type="button" aria-label="Close navigation" data-i18n-aria-label="sidebar.toggle"></button>
     <div class="mobile-view-title" id="mobileViewTitle" role="heading" aria-level="2" hidden></div>
@@ -55,22 +55,22 @@
         </section>
 
         <section class="section tool-view" data-view-section="structure" hidden>
-          <div class="section-heading"><h2><span data-i18n="section.structure.title">Usage breakdown</span> <span data-i18n="section.structure.subtitle">Start with three known token values</span> <button class="help-btn" type="button" data-help-section="structure" data-i18n-title="help.structure.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="structureUnit"><option value="auto" data-i18n="label.tokenUnitAuto">Auto</option><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label></div></div>
+          <div class="section-heading"><h2><span data-i18n="section.structure.title">Usage breakdown</span> <span data-i18n="section.structure.subtitle">Start with three known token values</span> <button class="help-btn" type="button" data-icon="question" data-help-section="structure" data-i18n-title="help.structure.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help"></button></h2><div class="section-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="structureUnit"><option value="auto" data-i18n="label.tokenUnitAuto">Auto</option><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label></div></div>
           <div class="tool-view-body">
           <div class="method-grid">
             <article class="panel method-card">
               <h3><span class="method-badge">1</span><span data-i18n="structure.knownDistribution">Known token distribution</span></h3>
               <div class="fields">
-                <div class="field"><label id="cacheLabel" for="cache">Cache hit (M tokens)</label><div class="unit-input"><input id="cache" type="number" min="0" step="0.1"><span id="cacheUnit">M</span></div></div>
-                <div class="field"><label id="inputLabel" for="input">Input outside cache (M tokens)</label><div class="unit-input"><input id="input" type="number" min="0" step="0.1"><span id="inputUnit">M</span></div></div>
-                <div class="field"><label id="outputLabel" for="output">Output (M tokens)</label><div class="unit-input"><input id="output" type="number" min="0" step="0.1"><span id="outputUnit">M</span></div></div>
+                <div class="field"><label id="cacheLabel" for="cache">Cache hit (M tokens)</label><div class="unit-input"><input id="cache" type="number" inputmode="decimal" autocomplete="off" min="0" step="0.1"><span id="cacheUnit">M</span></div></div>
+                <div class="field"><label id="inputLabel" for="input">Input outside cache (M tokens)</label><div class="unit-input"><input id="input" type="number" inputmode="decimal" autocomplete="off" min="0" step="0.1"><span id="inputUnit">M</span></div></div>
+                <div class="field"><label id="outputLabel" for="output">Output (M tokens)</label><div class="unit-input"><input id="output" type="number" inputmode="decimal" autocomplete="off" min="0" step="0.1"><span id="outputUnit">M</span></div></div>
               </div>
               <div class="result-strip"><div class="metric"><div class="label" data-i18n="structure.inputOutputWithCache">Input : output (with cache)</div><strong id="ratioOut">--</strong></div><div class="metric"><div class="label" data-i18n="field.cacheHitRate">Cache hit rate</div><strong id="hitOut">--</strong></div></div>
               <p class="formula" data-i18n="structure.formula">Input = cache hits + input outside cache.</p>
             </article>
             <article class="panel method-card">
               <h3><span class="method-badge">2</span><span data-i18n="structure.knownUsage">Known usage characteristics</span></h3>
-              <div class="fields two"><div class="field"><label for="knownRatio" data-i18n="field.inputOutput">Input : output</label><div class="unit-input"><input id="knownRatio" type="number" min="0" step="0.1"><span>: 1</span></div></div><div class="field"><label for="knownHit" data-i18n="field.cacheHitRate">Cache hit rate</label><div class="unit-input"><input id="knownHit" type="number" min="0" max="100" step="0.1"><span>%</span></div></div></div>
+              <div class="fields two"><div class="field"><label for="knownRatio" data-i18n="field.inputOutput">Input : output</label><div class="unit-input"><input id="knownRatio" type="number" inputmode="decimal" autocomplete="off" min="0" step="0.1"><span>: 1</span></div></div><div class="field"><label for="knownHit" data-i18n="field.cacheHitRate">Cache hit rate</label><div class="unit-input"><input id="knownHit" type="number" inputmode="decimal" autocomplete="off" min="0" max="100" step="0.1"><span>%</span></div></div></div>
               <div class="result-strip"><div class="metric"><div class="label" data-i18n="structure.inputShare">Input share of all tokens</div><strong id="inputShare">--</strong></div><div class="metric"><div class="label" data-i18n="structure.outputShare">Output share of all tokens</div><strong id="outputShare">--</strong></div></div>
               <p class="formula" data-i18n="structure.usageFormula">Set the known ratio and cache hit rate to inspect usage.</p>
             </article>
@@ -78,11 +78,11 @@
               <h3><span class="method-badge">3</span><span data-i18n="structure.multiplier">Multiplier conversion</span></h3>
               <div class="multiplier-grid">
                 <div class="multiplier-col">
-                  <div class="field"><div class="money-field-head"><label for="multSpent" data-i18n="structure.spent">Spent amount</label><select id="multSpentCurrency" data-i18n-aria-label="label.currency" aria-label="Currency"><option value="USD">$ USD</option><option value="CNY">¥ CNY</option></select></div><input id="multSpent" class="field-input" type="number" min="0" step="0.01"></div>
-                  <div class="field"><div class="money-field-head"><label for="multEarned" data-i18n="structure.earned">Earned amount</label><select id="multEarnedCurrency" data-i18n-aria-label="label.currency" aria-label="Currency"><option value="USD">$ USD</option><option value="CNY">¥ CNY</option></select></div><input id="multEarned" class="field-input" type="number" min="0" step="0.01"></div>
+                  <div class="field"><div class="money-field-head"><label for="multSpent" data-i18n="structure.spent">Spent amount</label><select id="multSpentCurrency" data-i18n-aria-label="label.currency" aria-label="Currency"><option value="USD">$ USD</option><option value="CNY">¥ CNY</option></select></div><input id="multSpent" class="field-input" type="number" inputmode="decimal" autocomplete="off" min="0" step="0.01"></div>
+                  <div class="field"><div class="money-field-head"><label for="multEarned" data-i18n="structure.earned">Earned amount</label><select id="multEarnedCurrency" data-i18n-aria-label="label.currency" aria-label="Currency"><option value="USD">$ USD</option><option value="CNY">¥ CNY</option></select></div><input id="multEarned" class="field-input" type="number" inputmode="decimal" autocomplete="off" min="0" step="0.01"></div>
                 </div>
                 <div class="multiplier-col">
-                  <div class="field"><div class="money-field-head"><label for="multFxRate" data-i18n="field.usdCnyRate">USD to CNY</label></div><div class="unit-input"><input id="multFxRate" class="field-input" type="number" min="0" step="0.01"><span>¥/$</span></div></div>
+                  <div class="field"><div class="money-field-head"><label for="multFxRate" data-i18n="field.usdCnyRate">USD to CNY</label></div><div class="unit-input"><input id="multFxRate" class="field-input" type="number" inputmode="decimal" autocomplete="off" min="0" step="0.01"><span>¥/$</span></div></div>
                   <div class="metric"><div class="label" data-i18n="structure.multiplierResult">Multiplier (spent ÷ earned)</div><strong id="multiplierOut">--</strong></div>
                 </div>
               </div>
@@ -93,7 +93,7 @@
         </section>
 
         <section class="section tool-view" data-view-section="comparison" hidden>
-          <div class="section-heading"><h2><span data-i18n="section.comparison.title">Model comparison</span> <span data-i18n="section.comparison.subtitle">Compare model costs side by side</span> <button class="help-btn" type="button" data-help-section="comparison" data-i18n-title="help.comparison.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button></h2></div><div class="tool-view-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="comparisonUnit"><option value="auto" data-i18n="label.tokenUnitAuto">Auto</option><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="comparisonModelFilter"></div></div>
+          <div class="section-heading"><h2><span data-i18n="section.comparison.title">Model comparison</span> <span data-i18n="section.comparison.subtitle">Compare model costs side by side</span> <button class="help-btn" type="button" data-icon="question" data-help-section="comparison" data-i18n-title="help.comparison.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help"></button></h2></div><div class="tool-view-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="comparisonUnit"><option value="auto" data-i18n="label.tokenUnitAuto">Auto</option><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter" id="comparisonModelFilter"></div></div>
           <div class="tool-view-body">
           <div class="panel scenario-config" id="comparisonConfig"></div>
           <div class="comparison-scroll"><div class="comparison" id="comparison"></div></div>
@@ -101,19 +101,19 @@
         </section>
 
         <section class="section scenario tool-view" data-view-section="tokenCost" hidden>
-          <div class="section-heading scenario-section-heading"><h2><span data-i18n="section.tokenCost.title">Tokens to cost</span> <span data-i18n="section.tokenCost.subtitle">Estimate actual spend from tokens</span> <button class="help-btn" type="button" data-help-section="tokenCost" data-i18n-title="help.tokenCost.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button></h2><div class="scenario-heading-actions"><button class="icon-btn scenario-favorites-toggle" id="tokenFavoritesToggle" type="button" aria-expanded="false" aria-controls="tokenFavoritesDrawer" data-i18n-title="favorites.title" data-i18n-aria-label="favorites.title" title="Favorites" aria-label="Favorites">☆</button></div></div><div class="scenario-favorites-drawer" id="tokenFavoritesDrawer" data-favorites-drawer="tokenRows" hidden><div class="scenario-favorites-drawer-heading"><strong data-i18n="favorites.title">Favorites</strong><span data-i18n="favorites.hint">Quick insert saved rows</span></div><div class="favorites-list" id="tokenFavoritesList"></div></div><div class="tool-view-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="tokenUnit"><option value="auto" data-i18n="label.tokenUnitAuto">Auto</option><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter model-filter-with-sharing"><div class="model-filter-control" id="tokenModelFilter"></div><label class="model-share-toggle"><input id="tokenModelsShared" type="checkbox"><span data-i18n="action.sharedModels">Shared models</span></label><button class="text-btn model-edit-btn" id="tokenModelEdit" type="button" data-i18n="action.editModels">Edit</button></div><button class="add-btn add-item-icon-btn" id="addTokenRow" type="button" data-i18n-title="action.addItem" data-i18n-aria-label="action.addItem" title="Add item" aria-label="Add item"><span aria-hidden="true">+</span><span class="visually-hidden" data-i18n="action.addItem">Add item</span></button></div>
+          <div class="section-heading scenario-section-heading"><h2><span data-i18n="section.tokenCost.title">Tokens to cost</span> <span data-i18n="section.tokenCost.subtitle">Estimate actual spend from tokens</span> <button class="help-btn" type="button" data-icon="question" data-help-section="tokenCost" data-i18n-title="help.tokenCost.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help"></button></h2><div class="scenario-heading-actions"><button class="icon-btn scenario-favorites-toggle" id="tokenFavoritesToggle" data-icon="star" type="button" aria-expanded="false" aria-controls="tokenFavoritesDrawer" data-i18n-title="favorites.title" data-i18n-aria-label="favorites.title" title="Favorites" aria-label="Favorites"></button></div></div><div class="scenario-favorites-drawer" id="tokenFavoritesDrawer" data-favorites-drawer="tokenRows" hidden><div class="scenario-favorites-drawer-heading"><strong data-i18n="favorites.title">Favorites</strong><span data-i18n="favorites.hint">Quick insert saved rows</span></div><div class="favorites-list" id="tokenFavoritesList"></div></div><div class="tool-view-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="tokenUnit"><option value="auto" data-i18n="label.tokenUnitAuto">Auto</option><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter model-filter-with-sharing"><div class="model-filter-control" id="tokenModelFilter"></div><label class="model-share-toggle"><input id="tokenModelsShared" type="checkbox"><span data-i18n="action.sharedModels">Shared models</span></label><button class="text-btn model-edit-btn" id="tokenModelEdit" type="button" data-i18n="action.editModels">Edit</button></div><button class="add-btn add-item-icon-btn" id="addTokenRow" type="button" data-i18n-title="action.addItem" data-i18n-aria-label="action.addItem" title="Add item" aria-label="Add item"><span data-icon="plus" aria-hidden="true"></span><span class="visually-hidden" data-i18n="action.addItem">Add item</span></button></div>
           <div class="tool-view-body"><div class="panel scenario-config" id="tokenConfig"></div><div class="panel scenario-panel"><div class="scenario-table" id="tokenRows"></div></div></div>
           <p class="hint" data-i18n="scenario.hint">Shared fields apply to all rows. Clear the checkbox to customize a row.</p>
         </section>
 
         <section class="section scenario tool-view" data-view-section="budget" hidden>
-          <div class="section-heading scenario-section-heading"><h2><span data-i18n="section.budget.title">Budget to tokens</span> <span data-i18n="section.budget.subtitle">Estimate tokens available from a budget</span> <button class="help-btn" type="button" data-help-section="budget" data-i18n-title="help.budget.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help">?</button></h2><div class="scenario-heading-actions"><button class="icon-btn scenario-favorites-toggle" id="budgetFavoritesToggle" type="button" aria-expanded="false" aria-controls="budgetFavoritesDrawer" data-i18n-title="favorites.title" data-i18n-aria-label="favorites.title" title="Favorites" aria-label="Favorites">☆</button></div></div><div class="scenario-favorites-drawer" id="budgetFavoritesDrawer" data-favorites-drawer="budgetRows" hidden><div class="scenario-favorites-drawer-heading"><strong data-i18n="favorites.title">Favorites</strong><span data-i18n="favorites.hint">Quick insert saved rows</span></div><div class="favorites-list" id="budgetFavoritesList"></div></div><div class="tool-view-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="budgetUnit"><option value="auto" data-i18n="label.tokenUnitAuto">Auto</option><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter model-filter-with-sharing"><div class="model-filter-control" id="budgetModelFilter"></div><label class="model-share-toggle"><input id="budgetModelsShared" type="checkbox"><span data-i18n="action.sharedModels">Shared models</span></label><button class="text-btn model-edit-btn" id="budgetModelEdit" type="button" data-i18n="action.editModels">Edit</button></div><button class="add-btn add-item-icon-btn" id="addBudgetRow" type="button" data-i18n-title="action.addItem" data-i18n-aria-label="action.addItem" title="Add item" aria-label="Add item"><span aria-hidden="true">+</span><span class="visually-hidden" data-i18n="action.addItem">Add item</span></button></div>
+          <div class="section-heading scenario-section-heading"><h2><span data-i18n="section.budget.title">Budget to tokens</span> <span data-i18n="section.budget.subtitle">Estimate tokens available from a budget</span> <button class="help-btn" type="button" data-icon="question" data-help-section="budget" data-i18n-title="help.budget.summary" data-i18n-aria-label="help.open" title="Open help" aria-label="Open help"></button></h2><div class="scenario-heading-actions"><button class="icon-btn scenario-favorites-toggle" id="budgetFavoritesToggle" data-icon="star" type="button" aria-expanded="false" aria-controls="budgetFavoritesDrawer" data-i18n-title="favorites.title" data-i18n-aria-label="favorites.title" title="Favorites" aria-label="Favorites"></button></div></div><div class="scenario-favorites-drawer" id="budgetFavoritesDrawer" data-favorites-drawer="budgetRows" hidden><div class="scenario-favorites-drawer-heading"><strong data-i18n="favorites.title">Favorites</strong><span data-i18n="favorites.hint">Quick insert saved rows</span></div><div class="favorites-list" id="budgetFavoritesList"></div></div><div class="tool-view-actions"><label class="structure-unit"><span data-i18n="label.tokenUnit">Token unit</span><select id="budgetUnit"><option value="auto" data-i18n="label.tokenUnitAuto">Auto</option><option value="K">K</option><option value="M">M</option><option value="B">B</option></select></label><div class="model-filter model-filter-with-sharing"><div class="model-filter-control" id="budgetModelFilter"></div><label class="model-share-toggle"><input id="budgetModelsShared" type="checkbox"><span data-i18n="action.sharedModels">Shared models</span></label><button class="text-btn model-edit-btn" id="budgetModelEdit" type="button" data-i18n="action.editModels">Edit</button></div><button class="add-btn add-item-icon-btn" id="addBudgetRow" type="button" data-i18n-title="action.addItem" data-i18n-aria-label="action.addItem" title="Add item" aria-label="Add item"><span data-icon="plus" aria-hidden="true"></span><span class="visually-hidden" data-i18n="action.addItem">Add item</span></button></div>
           <div class="tool-view-body"><div class="panel scenario-config" id="budgetConfig"></div><div class="panel scenario-panel"><div class="scenario-table" id="budgetRows"></div></div></div>
           <p class="hint" data-i18n="scenario.hint">Shared fields apply to all rows. Clear the checkbox to customize a row.</p>
         </section>
 
         <section class="section settings-view" data-view-section="settings" aria-labelledby="settingsTitle" hidden>
-          <button class="settings-back-button" type="button" data-view-target="home"><span aria-hidden="true">←</span><span data-i18n="settings.back">Back to workspace</span></button>
+          <button class="settings-back-button" type="button" data-view-target="home"><span data-icon="arrow-left" aria-hidden="true"></span><span data-i18n="settings.back">Back to workspace</span></button>
           <div class="settings-page-heading"><div><h2 id="settingsTitle" data-i18n="settings.title">Settings</h2></div></div>
           <div class="settings-content">
                 <section class="settings-section is-active" id="settingsGeneralSection" data-settings-section="general" aria-labelledby="settingsGeneralTitle">
@@ -135,15 +135,15 @@
               <section class="settings-section settings-models-section" id="settingsModelsSection" data-settings-section="models" aria-labelledby="settingsModelsTitle" hidden>
                 <div class="settings-section-heading">
                   <div><h3 id="settingsModelsTitle" data-i18n="settings.models">Model management</h3><p data-i18n="settings.modelsDescription">Manage models used for calculation and comparison.</p></div>
-                  <label class="settings-search-desktop"><span class="visually-hidden" data-i18n="models.search">Search models</span><span aria-hidden="true">⌕</span><input id="settingsModelSearch" type="search" data-i18n-placeholder="models.searchPlaceholder" placeholder="Search by model or provider"></label>
-                  <button class="icon-btn settings-search-mobile" id="settingsSearchOpen" type="button" aria-haspopup="dialog" data-i18n-title="models.search" data-i18n-aria-label="models.search" title="Search models" aria-label="Search models">⌕</button>
+                  <label class="settings-search-desktop"><span class="visually-hidden" data-i18n="models.search">Search models</span><span data-icon="search" aria-hidden="true"></span><input id="settingsModelSearch" type="search" data-i18n-placeholder="models.searchPlaceholder" placeholder="Search by model or provider"></label>
+                  <button class="icon-btn settings-search-mobile" id="settingsSearchOpen" type="button" aria-haspopup="dialog" data-i18n-title="models.search" data-i18n-aria-label="models.search" title="Search models" aria-label="Search models" data-icon="search"></button>
                 </div>
                 <div class="settings-model-layout">
                   <aside class="settings-filter-sidebar" aria-label="Model filters" data-i18n-aria-label="models.filters">
                     <section class="filter-sidebar-section provider-filter-section"><div class="filter-sidebar-heading"><h4 data-i18n="models.provider">Provider</h4><button class="filter-clear" id="settingsProviderClear" type="button" data-i18n="models.allProviders">All providers</button></div><div class="provider-filter-list" id="settingsProviderList"></div></section>
                     <section class="filter-sidebar-section"><h4 data-i18n="models.status">Status</h4><div class="status-filter-list" id="settingsStatusList"></div></section>
                     <section class="filter-sidebar-section custom-pricing-filter-section"><h4 data-i18n="models.customPricing">Custom pricing</h4><div class="custom-pricing-filter-list" id="settingsCustomPricingList" role="group" aria-label="Custom pricing filter" data-i18n-aria-label="models.customPricing"></div></section>
-                    <div class="settings-model-actions"><span class="pricing-status" id="pricingStatus" role="status" aria-live="polite"></span><button class="add-btn" id="settingsAddModel" type="button"><span aria-hidden="true">+</span><span data-i18n="action.addModel">Add model</span></button><button class="sync-btn" id="settingsSyncPrices" type="button"><span aria-hidden="true">↻</span><span data-i18n="action.syncPricing">Sync models</span></button></div>
+                    <div class="settings-model-actions"><span class="pricing-status" id="pricingStatus" role="status" aria-live="polite"></span><button class="add-btn" id="settingsAddModel" type="button"><span data-icon="plus" aria-hidden="true"></span><span data-i18n="action.addModel">Add model</span></button><button class="sync-btn" id="settingsSyncPrices" type="button"><span data-icon="refresh" aria-hidden="true"></span><span data-i18n="action.syncPricing">Sync models</span></button></div>
                   </aside>
                   <div class="settings-model-main">
                     <div class="settings-mobile-filters">
@@ -177,7 +177,7 @@
     </div>
   </div>
 
-  <section class="onboarding-dialog" id="onboardingDialog" aria-labelledby="onboardingTitle" aria-describedby="onboardingDescription" data-onboarding-dialog hidden>
+  <dialog class="onboarding-dialog" id="onboardingDialog" aria-labelledby="onboardingTitle" aria-describedby="onboardingDescription" data-onboarding-dialog hidden>
     <div class="onboarding-panel">
       <header class="onboarding-header">
         <div>
@@ -213,7 +213,7 @@
               <label for="onboardingLanguageEn"><strong>English</strong><small data-i18n="language.en">English</small></label>
             </fieldset>
           </div>
-          <div class="onboarding-actions" data-onboarding-navigation><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="currency"><span data-i18n="onboarding.next">Next</span><span aria-hidden="true">→</span></button></div>
+          <div class="onboarding-actions" data-onboarding-navigation><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="currency"><span data-i18n="onboarding.next">Next</span><span data-icon="arrow-right" aria-hidden="true"></span></button></div>
         </section>
 
         <section class="onboarding-step" id="onboardingStepCurrency" data-onboarding-step="currency" data-onboarding-step-index="2" aria-labelledby="onboardingCurrencyTitle" hidden>
@@ -229,7 +229,7 @@
               <label for="onboardingCurrencyCNY"><span class="onboarding-currency-symbol" aria-hidden="true">¥</span><span><strong>CNY</strong><small data-i18n="onboarding.currency.cny">Chinese yuan</small></span></label>
             </fieldset>
           </div>
-          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="language"><span aria-hidden="true">←</span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="theme"><span data-i18n="onboarding.next">Next</span><span aria-hidden="true">→</span></button></div>
+          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="language"><span data-icon="arrow-left" aria-hidden="true"></span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="theme"><span data-i18n="onboarding.next">Next</span><span data-icon="arrow-right" aria-hidden="true"></span></button></div>
         </section>
 
         <section class="onboarding-step" id="onboardingStepTheme" data-onboarding-step="theme" data-onboarding-step-index="3" aria-labelledby="onboardingThemeTitle" hidden>
@@ -247,7 +247,7 @@
               <label for="onboardingThemeDark" class="onboarding-theme-card"><span class="onboarding-theme-preview is-dark" aria-hidden="true"><i></i><b></b><em></em></span><strong data-i18n="theme.dark">Dark</strong></label>
             </fieldset>
           </div>
-          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="currency"><span aria-hidden="true">←</span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="providers"><span data-i18n="onboarding.next">Next</span><span aria-hidden="true">→</span></button></div>
+          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="currency"><span data-icon="arrow-left" aria-hidden="true"></span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="providers"><span data-i18n="onboarding.next">Next</span><span data-icon="arrow-right" aria-hidden="true"></span></button></div>
         </section>
 
         <section class="onboarding-step" id="onboardingStepProviders" data-onboarding-step="providers" data-onboarding-step-index="4" aria-labelledby="onboardingProvidersTitle" hidden>
@@ -270,7 +270,7 @@
             </fieldset>
             <p class="onboarding-provider-summary" data-onboarding-model-count aria-live="polite">0 recommended models will be added.</p>
           </div>
-          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="theme"><span aria-hidden="true">←</span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="data"><span data-i18n="onboarding.next">Next</span><span aria-hidden="true">→</span></button></div>
+          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="theme"><span data-icon="arrow-left" aria-hidden="true"></span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="data"><span data-i18n="onboarding.next">Next</span><span data-icon="arrow-right" aria-hidden="true"></span></button></div>
         </section>
 
         <section class="onboarding-step" id="onboardingStepData" data-onboarding-step="data" data-onboarding-step-index="5" aria-labelledby="onboardingDataTitle" hidden>
@@ -282,24 +282,24 @@
               <legend class="visually-hidden" data-i18n="onboarding.data.fieldLabel">Data preferences</legend>
               <label class="onboarding-switch-field"><input id="onboardingOnlineSync" type="checkbox" checked data-onboarding-preference="sync-catalog" data-onboarding-controls="onboardingFullCatalog"><span><strong data-i18n="onboarding.data.syncTitle">Sync the model and price catalog online</strong><small data-i18n="onboarding.data.syncDescription">Use an internet connection to refresh available models and prices.</small></span></label>
               <label class="onboarding-switch-field"><input id="onboardingFullCatalog" type="checkbox" data-onboarding-preference="show-all-providers" data-onboarding-requires="sync-catalog" aria-describedby="onboardingShowAllProvidersHint"><span><strong data-i18n="onboarding.data.providersTitle">Show the full provider list</strong><small data-i18n="onboarding.data.providersDescription">Reveal providers beyond your usual selections.</small></span></label>
-              <p class="onboarding-dependency-hint" id="onboardingShowAllProvidersHint" data-onboarding-dependency-hint="sync-catalog"><span aria-hidden="true">!</span><span data-i18n="onboarding.data.providersHint">This option becomes available after online catalog sync is enabled.</span></p>
+              <p class="onboarding-dependency-hint" id="onboardingShowAllProvidersHint" data-onboarding-dependency-hint="sync-catalog"><span data-icon="info" aria-hidden="true"></span><span data-i18n="onboarding.data.providersHint">This option becomes available after online catalog sync is enabled.</span></p>
             </fieldset>
           </div>
-          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="providers"><span aria-hidden="true">←</span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="confirm"><span data-i18n="onboarding.next">Next</span><span aria-hidden="true">→</span></button></div>
+          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="providers"><span data-icon="arrow-left" aria-hidden="true"></span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn" type="button" data-onboarding-action="next" data-onboarding-next data-onboarding-step-target="confirm"><span data-i18n="onboarding.next">Next</span><span data-icon="arrow-right" aria-hidden="true"></span></button></div>
         </section>
 
         <section class="onboarding-step" id="onboardingStepConfirm" data-onboarding-step="confirm" data-onboarding-step-index="6" aria-labelledby="onboardingConfirmTitle" hidden>
           <div class="onboarding-step-content onboarding-confirm-content">
-            <div class="onboarding-complete-mark" aria-hidden="true">✓</div>
+            <div class="onboarding-complete-mark" data-icon="check" aria-hidden="true"></div>
             <p class="onboarding-eyebrow" data-i18n="onboarding.confirm.eyebrow">All set</p>
             <h3 id="onboardingConfirmTitle" data-i18n="onboarding.confirm.title">Ready when you are</h3>
             <p class="onboarding-copy" data-i18n="onboarding.confirm.description">Your choices are saved locally and can be adjusted any time in Settings.</p>
           </div>
-          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="data"><span aria-hidden="true">←</span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn onboarding-start-btn" id="onboardingStart" type="button" data-onboarding-action="finish" data-onboarding-complete><span data-i18n="onboarding.start">Start using Token Cost Calc</span><span aria-hidden="true">→</span></button></div>
+          <div class="onboarding-actions" data-onboarding-navigation><button class="text-btn" type="button" data-onboarding-action="previous" data-onboarding-prev data-onboarding-step-target="data"><span data-icon="arrow-left" aria-hidden="true"></span><span data-i18n="onboarding.previous">Previous</span></button><button class="add-btn onboarding-start-btn" id="onboardingStart" type="button" data-onboarding-action="finish" data-onboarding-complete><span data-i18n="onboarding.start">Start using Token Cost Calc</span><span data-icon="arrow-right" aria-hidden="true"></span></button></div>
         </section>
       </form>
     </div>
-  </section>
+  </dialog>
 
   <dialog class="confirm-dialog" id="onboardingSkipProvidersDialog" aria-labelledby="onboardingSkipProvidersTitle"><form method="dialog"><h3 id="onboardingSkipProvidersTitle" data-i18n="onboarding.skipProviders.title">Skip recommended models?</h3><p data-i18n="onboarding.skipProviders.description">Selecting providers adds their recommended models. Are you sure you want to skip this?</p><p data-i18n="onboarding.skipProviders.note">You can add more models later in Settings &gt; Model management.</p><div class="confirm-dialog-actions"><button class="text-btn" value="cancel" data-i18n="action.cancel">Cancel</button><button class="add-btn" id="onboardingSkipProvidersConfirm" type="button" data-i18n="onboarding.skipProviders.confirm">Skip for now</button></div></form></dialog>
   <dialog class="confirm-dialog" id="modelDeleteDialog" aria-labelledby="modelDeleteTitle"><form method="dialog"><h3 id="modelDeleteTitle" data-i18n="dialog.deleteModelTitle">Delete model?</h3><p><span data-i18n="dialog.deleteModelPrefix">Delete</span> <strong id="modelDeleteName"></strong> <span data-i18n="dialog.deleteModelSuffix">and its selections.</span></p><div class="confirm-dialog-actions"><button class="text-btn" value="cancel" data-i18n="action.cancel">Cancel</button><button class="danger-btn" id="confirmModelDelete" type="button" data-i18n="action.deleteModel">Delete model</button></div></form></dialog>
@@ -307,12 +307,12 @@
   <dialog class="confirm-dialog" id="resetTextDialog" aria-labelledby="resetTextTitle"><form method="dialog"><h3 id="resetTextTitle" data-i18n="resetDialog.confirmTitle">Confirm reset</h3><p><span data-i18n="resetDialog.confirmDescription">Enter</span> <strong>RESET</strong> <span data-i18n="resetDialog.confirmSuffix">to restore the application defaults.</span></p><label class="reset-confirm-input"><span class="visually-hidden" data-i18n="resetDialog.inputLabel">Confirmation text</span><input id="resetConfirmInput" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="resetDialog.inputPlaceholder" placeholder="Type RESET"></label><p class="reset-dialog-error" id="resetDialogError" role="alert" hidden></p><div class="confirm-dialog-actions"><button class="text-btn" value="cancel" data-i18n="action.cancel">Cancel</button><button class="danger-btn" id="resetConfirmExecute" type="button" disabled data-i18n="resetDialog.execute">Reset application</button></div></form></dialog>
   <dialog class="model-config-dialog" id="modelConfigDialog" aria-labelledby="modelConfigTitle">
     <form method="dialog" class="model-config-form">
-      <div class="help-dialog-heading"><h3 id="modelConfigTitle" data-i18n="model.customPricing.title">Custom price and configuration</h3><button class="icon-btn" id="closeModelConfig" type="button" data-i18n-title="action.cancel" data-i18n-aria-label="action.cancel" aria-label="Cancel">×</button></div>
+      <div class="help-dialog-heading"><h3 id="modelConfigTitle" data-i18n="model.customPricing.title">Custom price and configuration</h3><button class="icon-btn" id="closeModelConfig" data-icon="x" type="button" data-i18n-title="action.cancel" data-i18n-aria-label="action.cancel" aria-label="Cancel"></button></div>
       <p data-i18n="model.customPricing.description">Override the price and calculation settings for this model.</p>
       <div class="model-config-fields">
-        <label><span data-i18n="model.customPricing.cache">Cache price</span><input id="modelConfigCache" type="number" min="0" step="0.001"></label>
-        <label><span data-i18n="model.customPricing.input">Input price</span><input id="modelConfigInput" type="number" min="0" step="0.001"></label>
-        <label><span data-i18n="model.customPricing.output">Output price</span><input id="modelConfigOutput" type="number" min="0" step="0.001"></label>
+        <label><span data-i18n="model.customPricing.cache">Cache price</span><input id="modelConfigCache" type="number" inputmode="decimal" autocomplete="off" min="0" step="0.001"></label>
+        <label><span data-i18n="model.customPricing.input">Input price</span><input id="modelConfigInput" type="number" inputmode="decimal" autocomplete="off" min="0" step="0.001"></label>
+        <label><span data-i18n="model.customPricing.output">Output price</span><input id="modelConfigOutput" type="number" inputmode="decimal" autocomplete="off" min="0" step="0.001"></label>
       </div>
       <div class="confirm-dialog-actions"><button class="text-btn restore-price-btn" id="resetModelConfig" type="button" data-i18n="model.customPricing.reset" hidden>Restore catalog prices</button><button class="text-btn" id="cancelModelConfig" type="button" data-i18n="model.customPricing.cancel">Cancel</button><button class="add-btn" id="saveModelConfig" type="button" data-i18n="model.customPricing.save">Save</button></div>
     </form>
@@ -331,21 +331,21 @@
   </dialog>
   <dialog class="model-add-dialog" id="modelAddDialog" aria-labelledby="modelAddTitle">
     <form method="dialog" class="model-config-form">
-      <div class="help-dialog-heading"><h3 id="modelAddTitle" data-i18n="model.add.title">Add custom model</h3><button class="icon-btn" id="closeModelAdd" type="button" data-i18n-title="action.cancel" data-i18n-aria-label="action.cancel" aria-label="Cancel">×</button></div>
+      <div class="help-dialog-heading"><h3 id="modelAddTitle" data-i18n="model.add.title">Add custom model</h3><button class="icon-btn" id="closeModelAdd" data-icon="x" type="button" data-i18n-title="action.cancel" data-i18n-aria-label="action.cancel" aria-label="Cancel"></button></div>
       <p id="modelAddDescription" data-i18n="model.add.description">Add a model for local calculations.</p>
       <div class="model-add-fields">
-        <label><span data-i18n="model.add.name">Model name</span><input id="newModelName" type="text" required maxlength="120" data-i18n-placeholder="model.add.namePlaceholder" placeholder="Enter model name"></label>
+        <label><span data-i18n="model.add.name">Model name</span><input id="newModelName" type="text" autocomplete="off" required maxlength="120" data-i18n-placeholder="model.add.namePlaceholder" placeholder="Enter model name"></label>
         <label><span data-i18n="model.add.type">Model type</span><select id="newModelCategory"></select></label>
         <label><span data-i18n="model.add.provider">Provider</span><select id="newModelProvider"></select></label>
       </div>
       <div class="confirm-dialog-actions"><button class="text-btn" id="cancelModelAdd" type="button" data-i18n="action.cancel">Cancel</button><button class="add-btn" id="saveModelAdd" type="button" data-i18n="model.add.save">Add model</button></div>
     </form>
   </dialog>
-  <dialog class="settings-search-dialog" id="settingsSearchDialog" aria-labelledby="settingsSearchTitle"><form method="dialog"><div class="help-dialog-heading"><h3 id="settingsSearchTitle" data-i18n="models.search">Search models</h3><button class="icon-btn" id="settingsSearchClose" type="button" data-i18n-title="action.cancel" data-i18n-aria-label="action.cancel" aria-label="Cancel">×</button></div><label><span class="visually-hidden" data-i18n="models.search">Search models</span><input id="settingsModelSearchMobile" type="search" data-i18n-placeholder="models.searchPlaceholder" placeholder="Search by model or provider"></label></form></dialog>
-  <dialog id="helpDialog" class="help-dialog" aria-labelledby="helpDialogTitle"><div class="help-dialog-content"><div class="help-dialog-heading"><h3 id="helpDialogTitle"></h3><button class="icon-btn help-close" id="closeHelpDialog" type="button" data-i18n-title="help.close" data-i18n-aria-label="help.close" title="Close help" aria-label="Close help">×</button></div><p id="helpDialogIntro"></p><ul id="helpDialogPoints"></ul><p class="help-dialog-note" id="helpDialogNote"></p></div></dialog>
+  <dialog class="settings-search-dialog" id="settingsSearchDialog" aria-labelledby="settingsSearchTitle"><form method="dialog"><div class="help-dialog-heading"><h3 id="settingsSearchTitle" data-i18n="models.search">Search models</h3><button class="icon-btn" id="settingsSearchClose" data-icon="x" type="button" data-i18n-title="action.cancel" data-i18n-aria-label="action.cancel" aria-label="Cancel"></button></div><label><span class="visually-hidden" data-i18n="models.search">Search models</span><input id="settingsModelSearchMobile" type="search" data-i18n-placeholder="models.searchPlaceholder" placeholder="Search by model or provider"></label></form></dialog>
+  <dialog id="helpDialog" class="help-dialog" aria-labelledby="helpDialogTitle"><div class="help-dialog-content"><div class="help-dialog-heading"><h3 id="helpDialogTitle"></h3><button class="icon-btn help-close" id="closeHelpDialog" data-icon="x" type="button" data-i18n-title="help.close" data-i18n-aria-label="help.close" title="Close help" aria-label="Close help"></button></div><p id="helpDialogIntro"></p><ul id="helpDialogPoints"></ul><p class="help-dialog-note" id="helpDialogNote"></p></div></dialog>
   <dialog class="model-selection-dialog" id="modelSelectionDialog" aria-labelledby="modelSelectionTitle">
     <form method="dialog" class="model-selection-form">
-      <div class="help-dialog-heading"><h3 id="modelSelectionTitle" data-i18n="filter.modelSelect">Model selection</h3><button class="icon-btn" id="closeModelSelection" type="button" data-i18n-title="action.cancel" data-i18n-aria-label="action.cancel" aria-label="Cancel">X</button></div>
+      <div class="help-dialog-heading"><h3 id="modelSelectionTitle" data-i18n="filter.modelSelect">Model selection</h3><button class="icon-btn" id="closeModelSelection" data-icon="x" type="button" data-i18n-title="action.cancel" data-i18n-aria-label="action.cancel" aria-label="Cancel"></button></div>
       <div class="model-selection-tabs" role="tablist" aria-label="Model selection sections"><button class="model-selection-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="modelSelectionChoicePanel" data-model-selection-panel="select" data-i18n="filter.modelSelect">Model selection</button><button class="model-selection-tab" type="button" role="tab" aria-selected="false" aria-controls="modelSelectionOrderPanel" data-model-selection-panel="order" data-i18n="filter.modelOrder">Model order</button></div>
       <div class="model-selection-layout" id="modelSelectionChoicePanel" role="tabpanel"></div>
       <section class="model-selection-order-panel" id="modelSelectionOrderPanel" role="tabpanel" hidden></section>
@@ -353,6 +353,7 @@
     </form>
   </dialog>
   <script src="dev-bridge.js"></script>
+  <script src="ui-icons.js"></script>
   <script src="locales/zh-CN.js"></script>
   <script src="locales/zh-TW.js"></script>
   <script src="locales/en.js"></script>

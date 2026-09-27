@@ -217,6 +217,8 @@ window.localeData["en"] = {
   "filter.modelOrderHint": "Drag above or below another item. The yellow line shows the insertion point.",
   "filter.removeModelFromOrder": "Remove from list",
   "filter.clearModelOrder": "Clear list",
+  "filter.moveModelUp": "Move model up",
+  "filter.moveModelDown": "Move model down",
   "footer.note": "Note: cache hits are part of input. You control model prices, exchange rates, and expense multipliers. Results include model token charges only, excluding tools, tax, and other service fees.",
   "footer.storage": "Local calculator / state saved in token-cost-calc.json",
   "dialog.deleteModelTitle": "Delete model?",

@@ -141,6 +141,8 @@ window.localeData["zh-CN"] = {
   "filter.modelOrderHint": "拖到另一项的上方或下方，黄色横线会提示插入位置。",
   "filter.removeModelFromOrder": "从列表移除",
   "filter.clearModelOrder": "清空列表",
+  "filter.moveModelUp": "上移模型",
+  "filter.moveModelDown": "下移模型",
   "footer.note": "注：缓存命中视为输入的一部分。模型价格、汇率和开支倍率均由你控制；计算结果仅包含模型 Token 费用，不含工具调用、税费及其他服务费用。",
   "footer.storage": "本地计算器 / 状态保存在 token-cost-calc.json",
   "dialog.deleteModelTitle": "删除模型？",

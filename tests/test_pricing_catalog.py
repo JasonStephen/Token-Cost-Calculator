@@ -173,7 +173,9 @@ class PricingCatalogTests(unittest.TestCase):
         self.assertIn("modelSelectionPanel = 'select'", app_source)
         self.assertIn('draggable="true"', app_source)
         self.assertIn("data-model-order-id", app_source)
-        self.assertNotIn("data-model-order-move", app_source)
+        # Touch-friendly up/down buttons were added alongside drag & drop (T1-2),
+        # so the move controls must exist rather than be forbidden.
+        self.assertIn("data-model-order-move", app_source)
         self.assertIn("is-drop-before", app_source)
         self.assertIn("is-drop-after", app_source)
         self.assertIn("model-selection-order-hint", app_source)
